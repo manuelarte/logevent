@@ -93,11 +93,11 @@ type transferLogEvent struct {
 }
 
 // Log the event either with Info if everything succeeded or with Error if there was an error.
-func (e transferLogEvent) Log(ctx, context.Context, li logevent.LogInterface) {
+func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
     if e.Err != nil {
         li.ErrorContext(
           ctx,
-          "error when transferring money",
+          "Error when transferring money",
           slog.String("source", e.Source),
           slog.String("target", e.Target),
           slog.String("amount", e.Amount),
@@ -108,34 +108,30 @@ func (e transferLogEvent) Log(ctx, context.Context, li logevent.LogInterface) {
 
     li.InfoContext(
       ctx,
-      "money transferred successfully",
+      "Money transferred successfully",
       slog.String("source", e.Source),
       slog.String("target", e.Target),
       slog.String("amount", e.Amount),
     )
 }
 
-func interceptor() grpc.UnaryServerInterceptor {
-  return logeventgrpc.UnaryServerInterceptor(transferLogEvent{}, *slog.Logger)
-}
-
-// Step 2 Add the interceptor to your server.
+// Step 2. Add the interceptor to your server.
 server := grpc.NewServer(
   grpc.UnaryInterceptor(
-    logeventgrpc.UnaryServerInterceptor(myLogEvent{}, slog.Default()),
+    logeventgrpc.UnaryServerInterceptor(transferLogEvent{}, slog.Default()),
   ),
 )
 
 func (s transferMoneyServer) Transfer(ctx context.Context, req *TransferMoneyRequest) (*TransferMoneyResponse, error) {
     // Step 3. Update your log event while handling the request.
-    _ = logeventmiddleware.UpdateLogEvent(r.Context(), func(t *transferLogEvent) {
+    _ = logeventmiddleware.UpdateLogEvent(ctx, func(t *transferLogEvent) {
       t.Source = "Alice"
       t.Target = "Bob"
       t.Amount = "100"
     })
     ...
     err := transferMoney("Alice", "Bob", 100)
-    _ = logeventmiddleware.UpdateLogEvent(r.Context(), func(t *transferLogEvent) {
+    _ = logeventmiddleware.UpdateLogEvent(ctx, func(t *transferLogEvent) {
       t.Err = err
     })
     ...
@@ -145,7 +141,7 @@ func (s transferMoneyServer) Transfer(ctx context.Context, req *TransferMoneyReq
 ## Architecture
 
 This library provides an HTTP middleware and a gRPC interceptor, but also a
-[generic implementation](./middlewares/middleware.go) for a custom way to server a request that encapsulates:
+[generic implementation](./middlewares/middleware.go) for a custom way to serve a request that encapsulates:
 
 1. Creating a per-request copy of the log event struct
 2. Wrapping it with thread-safe access (concurrency support)
