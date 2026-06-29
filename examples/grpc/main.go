@@ -12,9 +12,9 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	healthgrpc "google.golang.org/grpc/health/grpc_health_v1"
 
-	"codeberg.org/manuelarte/logevent"
-	"codeberg.org/manuelarte/logevent/middlewares"
-	logeventgrpc "codeberg.org/manuelarte/logevent/middlewares/grpc"
+	"github.com/manuelarte/logevent"
+	"github.com/manuelarte/logevent/middlewares"
+	logeventgrpc "github.com/manuelarte/logevent/middlewares/grpc"
 )
 
 func main() {

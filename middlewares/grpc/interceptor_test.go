@@ -8,8 +8,8 @@ import (
 
 	"google.golang.org/grpc"
 
-	"codeberg.org/manuelarte/logevent"
-	"codeberg.org/manuelarte/logevent/middlewares"
+	"github.com/manuelarte/logevent"
+	"github.com/manuelarte/logevent/middlewares"
 )
 
 type testLogInterface struct {

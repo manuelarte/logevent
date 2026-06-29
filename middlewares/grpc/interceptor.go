@@ -5,9 +5,9 @@ import (
 
 	"google.golang.org/grpc"
 
-	"codeberg.org/manuelarte/logevent"
-	"codeberg.org/manuelarte/logevent/internal"
-	"codeberg.org/manuelarte/logevent/middlewares"
+	"github.com/manuelarte/logevent"
+	"github.com/manuelarte/logevent/internal"
+	"github.com/manuelarte/logevent/middlewares"
 )
 
 // UnaryServerInterceptor returns a new unary server interceptor that emits a log event
