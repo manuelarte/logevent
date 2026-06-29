@@ -38,7 +38,7 @@ type testLogEvent struct {
 	value  string
 }
 
-func (e *testLogEvent) Log(_ context.Context, li logevent.LogInterface) {
+func (e *testLogEvent) Log(_ context.Context, li testLogInterface) {
 	*e.events = append(*e.events, "log:"+e.value)
 	li.Info(e.value)
 }
@@ -48,7 +48,7 @@ func TestAddLogEventMiddlewareLogsAfterHandler(t *testing.T) {
 	li := testLogInterface{entries: &got}
 	le := testLogEvent{events: &got}
 
-	middleware := AddLogEventMiddleware(le, func(context.Context) logevent.LogInterface {
+	middleware := AddLogEventMiddleware(le, func(context.Context) testLogInterface {
 		got = append(got, "factory")
 
 		return li
@@ -85,7 +85,7 @@ func TestAddLogEventMiddlewareLogsAfterPanic(t *testing.T) {
 	le := testLogEvent{events: &events}
 	panicValue := "boom"
 
-	middleware := AddLogEventMiddleware(le, func(context.Context) logevent.LogInterface {
+	middleware := AddLogEventMiddleware(le, func(context.Context) testLogInterface {
 		events = append(events, "factory")
 
 		return li

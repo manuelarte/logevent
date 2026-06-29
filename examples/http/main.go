@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/manuelarte/logevent"
 	"github.com/manuelarte/logevent/middlewares"
 	logeventmiddleware "github.com/manuelarte/logevent/middlewares/http"
 )
@@ -62,17 +61,16 @@ func eventHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("OK"))
 }
 
-func logEventInterface(_ context.Context) logevent.LogInterface {
-	logger := slog.Default()
-	return logger
+func logEventInterface(_ context.Context) *slog.Logger {
+	return slog.Default()
 }
 
 type myLogEvent struct {
 	Elapsed time.Duration
 }
 
-func (e myLogEvent) Log(_ context.Context, li logevent.LogInterface) {
-	li.Info("Event handled", slog.Int64("elapsed_ms", e.Elapsed.Milliseconds()))
+func (e myLogEvent) Log(ctx context.Context, logger *slog.Logger) {
+	logger.InfoContext(ctx, "Event handled", slog.Int64("elapsed_ms", e.Elapsed.Milliseconds()))
 }
 
 func getRandomDuration() time.Duration {

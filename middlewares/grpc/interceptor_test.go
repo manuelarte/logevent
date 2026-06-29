@@ -37,7 +37,7 @@ type testLogEvent struct {
 	value  string
 }
 
-func (e *testLogEvent) Log(_ context.Context, li logevent.LogInterface) {
+func (e *testLogEvent) Log(_ context.Context, li testLogInterface) {
 	*e.events = append(*e.events, "log:"+e.value)
 	li.Info(e.value)
 }
@@ -46,7 +46,7 @@ func TestUnaryServerInterceptorLogsAfterHandler(t *testing.T) {
 	got := make([]string, 0)
 	li := testLogInterface{entries: &got}
 
-	interceptor := UnaryServerInterceptor(testLogEvent{events: &got}, func(context.Context) logevent.LogInterface {
+	interceptor := UnaryServerInterceptor(testLogEvent{events: &got}, func(context.Context) testLogInterface {
 		got = append(got, "factory")
 
 		return li
@@ -87,7 +87,7 @@ func TestUnaryServerInterceptorLogsAfterHandlerError(t *testing.T) {
 	li := testLogInterface{entries: &events}
 	expectedErr := errors.New("handler error")
 
-	interceptor := UnaryServerInterceptor(testLogEvent{events: &events}, func(context.Context) logevent.LogInterface {
+	interceptor := UnaryServerInterceptor(testLogEvent{events: &events}, func(context.Context) testLogInterface {
 		events = append(events, "factory")
 
 		return li
@@ -136,7 +136,7 @@ func TestUnaryServerInterceptorEachRequestGetsFreshInstance(t *testing.T) {
 	li := testLogInterface{entries: &entries}
 	pointers := make([]string, 0, 2)
 
-	interceptor := UnaryServerInterceptor(testLogEvent{events: &entries}, func(context.Context) logevent.LogInterface {
+	interceptor := UnaryServerInterceptor(testLogEvent{events: &entries}, func(context.Context) testLogInterface {
 		return li
 	})
 

@@ -5,7 +5,6 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/manuelarte/logevent"
 	"github.com/manuelarte/logevent/internal"
 	"github.com/manuelarte/logevent/middlewares"
 )
@@ -43,9 +42,9 @@ import (
 //		return slog.Default()
 //	})
 //	grpc.NewServer(grpc.ChainUnaryInterceptor(interceptor))
-func UnaryServerInterceptor[T any, PT internal.PtrLogEvent[T]](
+func UnaryServerInterceptor[L, T any, PT internal.PtrLogEvent[L, T]](
 	t T,
-	f func(ctx context.Context) logevent.LogInterface,
+	f func(ctx context.Context) L,
 ) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
@@ -58,7 +57,7 @@ func UnaryServerInterceptor[T any, PT internal.PtrLogEvent[T]](
 			err  error
 		)
 
-		middlewares.HandleWithLogEvent[T, PT](ctx, t, f, func(ctxWithLogEvent context.Context) {
+		middlewares.HandleWithLogEvent[L, T, PT](ctx, t, f, func(ctxWithLogEvent context.Context) {
 			resp, err = handler(ctxWithLogEvent, req)
 		})
 
