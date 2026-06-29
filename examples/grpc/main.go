@@ -12,7 +12,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	healthgrpc "google.golang.org/grpc/health/grpc_health_v1"
 
-	"github.com/manuelarte/logevent"
 	"github.com/manuelarte/logevent/middlewares"
 	logeventgrpc "github.com/manuelarte/logevent/middlewares/grpc"
 )
@@ -31,7 +30,7 @@ func run() error {
 
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(
-			logeventgrpc.UnaryServerInterceptor(myLogEvent{}, logEventInterface),
+			logeventgrpc.UnaryServerInterceptor(myLogEvent{}, slog.Default()),
 		),
 	)
 	healthgrpc.RegisterHealthServer(server, new(healthServer))
@@ -88,17 +87,14 @@ func (s healthServer) Watch(*healthgrpc.HealthCheckRequest, healthgrpc.Health_Wa
 	return fmt.Errorf("watch is not implemented in this example")
 }
 
-func logEventInterface(_ context.Context) logevent.LogInterface {
-	return slog.Default()
-}
-
 type myLogEvent struct {
 	Service string
 	Elapsed time.Duration
 }
 
-func (e myLogEvent) Log(_ context.Context, li logevent.LogInterface) {
-	li.Info(
+func (e myLogEvent) Log(ctx context.Context, li *slog.Logger) {
+	li.InfoContext(
+		ctx,
 		"rpc handled",
 		slog.String("service", e.Service),
 		slog.Int64("elapsed_ms", e.Elapsed.Milliseconds()),

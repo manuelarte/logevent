@@ -20,24 +20,12 @@ func (l testLogInterface) Info(msg string, _ ...any) {
 	*l.entries = append(*l.entries, "info:"+msg)
 }
 
-func (l testLogInterface) Warn(msg string, _ ...any) {
-	*l.entries = append(*l.entries, "warn:"+msg)
-}
-
-func (l testLogInterface) Debug(msg string, _ ...any) {
-	*l.entries = append(*l.entries, "debug:"+msg)
-}
-
-func (l testLogInterface) Error(msg string, _ ...any) {
-	*l.entries = append(*l.entries, "error:"+msg)
-}
-
 type testLogEvent struct {
 	events *[]string
 	value  string
 }
 
-func (e *testLogEvent) Log(_ context.Context, li logevent.LogInterface) {
+func (e *testLogEvent) Log(_ context.Context, li testLogInterface) {
 	*e.events = append(*e.events, "log:"+e.value)
 	li.Info(e.value)
 }
@@ -46,11 +34,7 @@ func TestUnaryServerInterceptorLogsAfterHandler(t *testing.T) {
 	got := make([]string, 0)
 	li := testLogInterface{entries: &got}
 
-	interceptor := UnaryServerInterceptor(testLogEvent{events: &got}, func(context.Context) logevent.LogInterface {
-		got = append(got, "factory")
-
-		return li
-	})
+	interceptor := UnaryServerInterceptor(testLogEvent{events: &got}, li)
 
 	handler := func(ctx context.Context, req any) (any, error) {
 		got = append(got, "handler")
@@ -70,7 +54,7 @@ func TestUnaryServerInterceptorLogsAfterHandler(t *testing.T) {
 		t.Fatalf("interceptor() error = %v", err)
 	}
 
-	want := []string{"handler", "factory", "log:updated", "info:updated"}
+	want := []string{"handler", "log:updated", "info:updated"}
 	if len(got) != len(want) {
 		t.Fatalf("got %d entries, want %d: %v", len(got), len(want), got)
 	}
@@ -87,11 +71,7 @@ func TestUnaryServerInterceptorLogsAfterHandlerError(t *testing.T) {
 	li := testLogInterface{entries: &events}
 	expectedErr := errors.New("handler error")
 
-	interceptor := UnaryServerInterceptor(testLogEvent{events: &events}, func(context.Context) logevent.LogInterface {
-		events = append(events, "factory")
-
-		return li
-	})
+	interceptor := UnaryServerInterceptor(testLogEvent{events: &events}, li)
 
 	handler := func(ctx context.Context, req any) (any, error) {
 		events = append(events, "handler")
@@ -111,7 +91,7 @@ func TestUnaryServerInterceptorLogsAfterHandlerError(t *testing.T) {
 		t.Fatalf("interceptor() error = %v, want %v", err, expectedErr)
 	}
 
-	want := []string{"handler", "factory", "log:error-update", "info:error-update"}
+	want := []string{"handler", "log:error-update", "info:error-update"}
 	if len(events) != len(want) {
 		t.Fatalf("got %d entries, want %d: %v", len(events), len(want), events)
 	}
@@ -136,9 +116,7 @@ func TestUnaryServerInterceptorEachRequestGetsFreshInstance(t *testing.T) {
 	li := testLogInterface{entries: &entries}
 	pointers := make([]string, 0, 2)
 
-	interceptor := UnaryServerInterceptor(testLogEvent{events: &entries}, func(context.Context) logevent.LogInterface {
-		return li
-	})
+	interceptor := UnaryServerInterceptor(testLogEvent{events: &entries}, li)
 
 	handler := func(ctx context.Context, req any) (any, error) {
 		err := middlewares.UpdateLogEvent(ctx, func(e *testLogEvent) {

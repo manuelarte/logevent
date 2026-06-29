@@ -3,7 +3,6 @@ package middlewares
 import (
 	"context"
 
-	"github.com/manuelarte/logevent"
 	"github.com/manuelarte/logevent/internal"
 )
 
@@ -21,12 +20,12 @@ import (
 //
 // This design allows handlers to update the log event during request processing, and ensures
 // the log event is only logged once and is thread-safe.
-func HandleWithLogEvent[T any, PT internal.PtrLogEvent[T]](
+func HandleWithLogEvent[L, T any, PT internal.PtrLogEvent[L, T]](
 	ctx context.Context,
 	t T,
-	loggerFunc func(context.Context) logevent.LogInterface,
+	logger L,
 	handler func(context.Context),
-) *internal.WrapperLogEvent[T, PT] {
+) *internal.WrapperLogEvent[L, T, PT] {
 	tCopy := t // per-request copy
 
 	// Hack: bridge *T -> PT through interface assertion.
@@ -38,13 +37,13 @@ func HandleWithLogEvent[T any, PT internal.PtrLogEvent[T]](
 	wle := internal.NewWrapperLogEvent(pt)
 
 	defer func(ctx context.Context) {
-		wle.Log(ctx, loggerFunc(ctx))
+		wle.Log(ctx, logger)
 	}(ctx)
 
-	ctx = context.WithValue(ctx, internal.LogEventKey[T, PT]{}, wle)
+	ctx = context.WithValue(ctx, internal.LogEventKey[L, T, PT]{}, wle)
 	handler(ctx)
 
-	v, ok := ctx.Value(internal.LogEventKey[T, PT]{}).(*internal.WrapperLogEvent[T, PT])
+	v, ok := ctx.Value(internal.LogEventKey[L, T, PT]{}).(*internal.WrapperLogEvent[L, T, PT])
 	if ok {
 		wle = v
 	}
@@ -80,6 +79,6 @@ func HandleWithLogEvent[T any, PT internal.PtrLogEvent[T]](
 //		})
 //		return &pb.Response{}, nil
 //	}
-func UpdateLogEvent[T any, PT internal.PtrLogEvent[T]](ctx context.Context, f func(t PT)) error {
-	return internal.UpdateLogEvent[T, PT](ctx, f)
+func UpdateLogEvent[L, T any, PT internal.PtrLogEvent[L, T]](ctx context.Context, f func(t PT)) error {
+	return internal.UpdateLogEvent[L, T, PT](ctx, f)
 }

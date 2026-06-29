@@ -41,9 +41,10 @@ type transferLogEvent struct {
   Err    error
 }
 
-func (e transferLogEvent) Log(_ context.Context, li logevent.LogInterface) {
+func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
   if e.Err != nil {
-    li.Error(
+    li.ErrorContext(
+      ctx,
       "Error when transferring money",
       slog.String("source", e.Source),
       slog.String("target", e.Target),
@@ -53,7 +54,8 @@ func (e transferLogEvent) Log(_ context.Context, li logevent.LogInterface) {
     return
   }
 
-  li.Info(
+  li.InfoContext(
+    ctx,
     "Money transferred successfully",
     slog.String("source", e.Source),
     slog.String("target", e.Target),
@@ -65,7 +67,9 @@ func (e transferLogEvent) Log(_ context.Context, li logevent.LogInterface) {
 func registerRoutes() {
   http.Handle(
     "/my-endpoint",
-    logeventmiddleware.AddLogEventMiddleware(transferLogEvent{}, logEventInterface)(http.HandlerFunc(myHandler)),
+    logeventmiddleware.AddLogEventMiddleware(transferLogEvent{}, func(_ context.Context) *slog.Logger {
+      return slog.Default()
+    })(http.HandlerFunc(myHandler)),
   )
 }
 
@@ -98,28 +102,30 @@ type transferLogEvent struct {
     Err    error
 }
 
-func (e transferLogEvent) Log(_ context.Context, li logevent.LogInterface) {
+func (e transferLogEvent) Log(ctx, context.Context, li logevent.LogInterface) {
     if e.Err != nil {
-        li.Error(
-            "error when transferring money",
-            slog.String("source", e.Source),
-            slog.String("target", e.Target),
-            slog.String("amount", e.Amount),
-            slog.Any("error", e.Err),
+        li.ErrorContext(
+          ctx,
+          "error when transferring money",
+          slog.String("source", e.Source),
+          slog.String("target", e.Target),
+          slog.String("amount", e.Amount),
+          slog.Any("error", e.Err),
         )
         return
     }
 
-    li.Info(
-        "money transferred successfully",
-        slog.String("source", e.Source),
-        slog.String("target", e.Target),
-        slog.String("amount", e.Amount),
+    li.InfoContext(
+      ctx,
+      "money transferred successfully",
+      slog.String("source", e.Source),
+      slog.String("target", e.Target),
+      slog.String("amount", e.Amount),
     )
 }
 
 func interceptor() grpc.UnaryServerInterceptor {
-  return logeventgrpc.UnaryServerInterceptor(rpcLogEvent{}, func(_ context.Context) logevent.LogInterface {
+  return logeventgrpc.UnaryServerInterceptor(rpcLogEvent{}, func(_ context.Context) *slog.Logger {
     return slog.Default()
   })
 }
