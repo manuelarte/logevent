@@ -30,7 +30,7 @@ func run() error {
 
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(
-			logeventgrpc.UnaryServerInterceptor(myLogEvent{}, logEventInterface),
+			logeventgrpc.UnaryServerInterceptor(myLogEvent{}, slog.Default()),
 		),
 	)
 	healthgrpc.RegisterHealthServer(server, new(healthServer))
@@ -85,10 +85,6 @@ func (s healthServer) Check(ctx context.Context, req *healthgrpc.HealthCheckRequ
 
 func (s healthServer) Watch(*healthgrpc.HealthCheckRequest, healthgrpc.Health_WatchServer) error {
 	return fmt.Errorf("watch is not implemented in this example")
-}
-
-func logEventInterface(_ context.Context) *slog.Logger {
-	return slog.Default()
 }
 
 type myLogEvent struct {

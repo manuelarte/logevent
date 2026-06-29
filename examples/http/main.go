@@ -20,7 +20,7 @@ func main() {
 }
 
 func run() error {
-	http.Handle("/events", logeventmiddleware.AddLogEventMiddleware(myLogEvent{}, logEventInterface)(http.HandlerFunc(eventHandler)))
+	http.Handle("/events", logeventmiddleware.AddLogEventMiddleware(myLogEvent{}, slog.Default())(http.HandlerFunc(eventHandler)))
 
 	listener, errPort := net.Listen("tcp", ":0")
 	if errPort != nil {
@@ -59,10 +59,6 @@ func eventHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(200)
 	_, _ = w.Write([]byte("OK"))
-}
-
-func logEventInterface(_ context.Context) *slog.Logger {
-	return slog.Default()
 }
 
 type myLogEvent struct {

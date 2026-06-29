@@ -38,11 +38,11 @@ import (
 //	})(nextHandler)
 func AddLogEventMiddleware[L, T any, PT internal.PtrLogEvent[L, T]](
 	t T,
-	f func(ctx context.Context) L,
+	logger L,
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			middlewares.HandleWithLogEvent[L, T, PT](r.Context(), t, f, func(ctx context.Context) {
+			middlewares.HandleWithLogEvent[L, T, PT](r.Context(), t, logger, func(ctx context.Context) {
 				r = r.WithContext(ctx)
 				next.ServeHTTP(w, r)
 			})

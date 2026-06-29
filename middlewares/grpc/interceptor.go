@@ -44,7 +44,7 @@ import (
 //	grpc.NewServer(grpc.ChainUnaryInterceptor(interceptor))
 func UnaryServerInterceptor[L, T any, PT internal.PtrLogEvent[L, T]](
 	t T,
-	f func(ctx context.Context) L,
+	logger L,
 ) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
@@ -57,7 +57,7 @@ func UnaryServerInterceptor[L, T any, PT internal.PtrLogEvent[L, T]](
 			err  error
 		)
 
-		middlewares.HandleWithLogEvent[L, T, PT](ctx, t, f, func(ctxWithLogEvent context.Context) {
+		middlewares.HandleWithLogEvent[L, T, PT](ctx, t, logger, func(ctxWithLogEvent context.Context) {
 			resp, err = handler(ctxWithLogEvent, req)
 		})
 

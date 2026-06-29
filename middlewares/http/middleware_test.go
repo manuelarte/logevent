@@ -21,18 +21,6 @@ func (l testLogInterface) Info(msg string, _ ...any) {
 	*l.entries = append(*l.entries, "info:"+msg)
 }
 
-func (l testLogInterface) Warn(msg string, _ ...any) {
-	*l.entries = append(*l.entries, "warn:"+msg)
-}
-
-func (l testLogInterface) Debug(msg string, _ ...any) {
-	*l.entries = append(*l.entries, "debug:"+msg)
-}
-
-func (l testLogInterface) Error(msg string, _ ...any) {
-	*l.entries = append(*l.entries, "error:"+msg)
-}
-
 type testLogEvent struct {
 	events *[]string
 	value  string
@@ -48,11 +36,7 @@ func TestAddLogEventMiddlewareLogsAfterHandler(t *testing.T) {
 	li := testLogInterface{entries: &got}
 	le := testLogEvent{events: &got}
 
-	middleware := AddLogEventMiddleware(le, func(context.Context) testLogInterface {
-		got = append(got, "factory")
-
-		return li
-	})
+	middleware := AddLogEventMiddleware(le, li)
 	handler := middleware(nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {
 		got = append(got, "handler")
 
@@ -73,7 +57,7 @@ func TestAddLogEventMiddlewareLogsAfterHandler(t *testing.T) {
 		t.Fatalf("status code = %d, want %d", rec.Code, nethttp.StatusAccepted)
 	}
 
-	want := []string{"handler", "factory", "log:updated", "info:updated"}
+	want := []string{"handler", "log:updated", "info:updated"}
 	if !cmp.Equal(got, want) {
 		t.Fatalf("got = %v, want %v", got, want)
 	}
@@ -85,11 +69,7 @@ func TestAddLogEventMiddlewareLogsAfterPanic(t *testing.T) {
 	le := testLogEvent{events: &events}
 	panicValue := "boom"
 
-	middleware := AddLogEventMiddleware(le, func(context.Context) testLogInterface {
-		events = append(events, "factory")
-
-		return li
-	})
+	middleware := AddLogEventMiddleware(le, li)
 	handler := middleware(nethttp.HandlerFunc(func(_ nethttp.ResponseWriter, r *nethttp.Request) {
 		events = append(events, "handler")
 
@@ -108,7 +88,7 @@ func TestAddLogEventMiddlewareLogsAfterPanic(t *testing.T) {
 			t.Fatalf("recover() = %v, want %v", recovered, panicValue)
 		}
 
-		want := []string{"handler", "factory", "log:panic-update", "info:panic-update"}
+		want := []string{"handler", "log:panic-update", "info:panic-update"}
 		if !cmp.Equal(events, want) {
 			t.Fatalf("events = %v, want %v", events, want)
 		}

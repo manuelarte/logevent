@@ -23,7 +23,7 @@ import (
 func HandleWithLogEvent[L, T any, PT internal.PtrLogEvent[L, T]](
 	ctx context.Context,
 	t T,
-	loggerFunc func(context.Context) L,
+	logger L,
 	handler func(context.Context),
 ) *internal.WrapperLogEvent[L, T, PT] {
 	tCopy := t // per-request copy
@@ -37,7 +37,7 @@ func HandleWithLogEvent[L, T any, PT internal.PtrLogEvent[L, T]](
 	wle := internal.NewWrapperLogEvent(pt)
 
 	defer func(ctx context.Context) {
-		wle.Log(ctx, loggerFunc(ctx))
+		wle.Log(ctx, logger)
 	}(ctx)
 
 	ctx = context.WithValue(ctx, internal.LogEventKey[L, T, PT]{}, wle)
