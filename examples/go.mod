@@ -1,9 +1,9 @@
-module codeberg.org/manuelarte/logevent/examples
+module github.com/manuelarte/logevent/examples
 
 go 1.25.0
 
 require (
-	codeberg.org/manuelarte/logevent v0.0.0-20260626231200-eb5205ad87c3
+	github.com/manuelarte/logevent v0.0.0-20260626231200-eb5205ad87c3
 	google.golang.org/grpc v1.81.1
 )
 
@@ -15,4 +15,4 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-replace codeberg.org/manuelarte/logevent => ../
+replace github.com/manuelarte/logevent => ../

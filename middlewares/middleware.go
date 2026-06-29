@@ -3,8 +3,8 @@ package middlewares
 import (
 	"context"
 
-	"codeberg.org/manuelarte/logevent"
-	"codeberg.org/manuelarte/logevent/internal"
+	"github.com/manuelarte/logevent"
+	"github.com/manuelarte/logevent/internal"
 )
 
 // HandleWithLogEvent is a generic helper function that encapsulates the common pattern of adding a log event

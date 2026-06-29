@@ -1,4 +1,4 @@
-module codeberg.org/manuelarte/logevent
+module github.com/manuelarte/logevent
 
 go 1.25.0
 

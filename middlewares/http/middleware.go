@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"codeberg.org/manuelarte/logevent"
-	"codeberg.org/manuelarte/logevent/internal"
-	"codeberg.org/manuelarte/logevent/middlewares"
+	"github.com/manuelarte/logevent"
+	"github.com/manuelarte/logevent/internal"
+	"github.com/manuelarte/logevent/middlewares"
 )
 
 // AddLogEventMiddleware returns a middleware that adds a request-scoped logger to the context.

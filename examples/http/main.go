@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"time"
 
-	"codeberg.org/manuelarte/logevent"
-	"codeberg.org/manuelarte/logevent/middlewares"
-	logeventmiddleware "codeberg.org/manuelarte/logevent/middlewares/http"
+	"github.com/manuelarte/logevent"
+	"github.com/manuelarte/logevent/middlewares"
+	logeventmiddleware "github.com/manuelarte/logevent/middlewares/http"
 )
 
 func main() {

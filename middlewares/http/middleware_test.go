@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"codeberg.org/manuelarte/logevent"
-	"codeberg.org/manuelarte/logevent/middlewares"
+	"github.com/manuelarte/logevent"
+	"github.com/manuelarte/logevent/middlewares"
 )
 
 type testLogInterface struct {

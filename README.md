@@ -10,7 +10,7 @@ in Go
 ## ⬇️ How to get it
 
 ```bash
-go get codeberg.org/manuelarte/logevent
+go get github.com/manuelarte/logevent
 ```
 
 ## Features

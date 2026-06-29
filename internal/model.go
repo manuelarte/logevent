@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"codeberg.org/manuelarte/logevent"
+	"github.com/manuelarte/logevent"
 )
 
 type (
