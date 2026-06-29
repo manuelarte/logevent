@@ -86,33 +86,33 @@ This library also provides a unary server interceptor for your gRPC server.
 ```go
 // Step 1. Define your log event struct and how to log it.
 type transferLogEvent struct {
-    Source string
-    Target string
-    Amount string
-    Err    error
+  Source string
+  Target string
+  Amount string
+  Err    error
 }
 
 // Log the event either with Info if everything succeeded or with Error if there was an error.
 func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
-    if e.Err != nil {
-        li.ErrorContext(
-          ctx,
-          "Error when transferring money",
-          slog.String("source", e.Source),
-          slog.String("target", e.Target),
-          slog.String("amount", e.Amount),
-          slog.Any("error", e.Err),
-        )
-        return
-    }
-
-    li.InfoContext(
+  if e.Err != nil {
+    li.ErrorContext(
       ctx,
-      "Money transferred successfully",
+      "Error when transferring money",
       slog.String("source", e.Source),
       slog.String("target", e.Target),
       slog.String("amount", e.Amount),
+      slog.Any("error", e.Err),
     )
+    return
+  }
+
+  li.InfoContext(
+    ctx,
+    "Money transferred successfully",
+    slog.String("source", e.Source),
+    slog.String("target", e.Target),
+    slog.String("amount", e.Amount),
+  )
 }
 
 // Step 2. Add the interceptor to your server.
@@ -123,18 +123,18 @@ server := grpc.NewServer(
 )
 
 func (s transferMoneyServer) Transfer(ctx context.Context, req *TransferMoneyRequest) (*TransferMoneyResponse, error) {
-    // Step 3. Update your log event while handling the request.
-    _ = logeventmiddleware.UpdateLogEvent(ctx, func(t *transferLogEvent) {
-      t.Source = "Alice"
-      t.Target = "Bob"
-      t.Amount = "100"
-    })
-    ...
-    err := transferMoney("Alice", "Bob", 100)
-    _ = logeventmiddleware.UpdateLogEvent(ctx, func(t *transferLogEvent) {
-      t.Err = err
-    })
-    ...
+  // Step 3. Update your log event while handling the request.
+  _ = logeventmiddleware.UpdateLogEvent(ctx, func(t *transferLogEvent) {
+    t.Source = "Alice"
+    t.Target = "Bob"
+    t.Amount = "100"
+  })
+  ...
+  err := transferMoney("Alice", "Bob", 100)
+  _ = logeventmiddleware.UpdateLogEvent(ctx, func(t *transferLogEvent) {
+    t.Err = err
+  })
+  ...
 }
 ```
 
