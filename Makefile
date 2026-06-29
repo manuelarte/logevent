@@ -4,7 +4,8 @@ fmt:
 
 .PHONY: lint
 lint: fmt
-	golangci-lint run --fix ./...
+	golangci-lint custom -v
+	./custom-gcl run --fix ./...
 
 .PHONY: test
 test:
