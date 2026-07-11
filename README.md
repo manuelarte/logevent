@@ -72,9 +72,7 @@ func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
 func registerRoutes() {
   http.Handle(
     "/my-endpoint",
-    logeventmiddleware.AddLogEventMiddleware(transferLogEvent{}, func(_ context.Context) *slog.Logger {
-      return slog.Default()
-    })(http.HandlerFunc(myHandler)),
+    logeventmiddleware.AddLogEventMiddleware(transferLogEvent{}, slog.Default())(http.HandlerFunc(myHandler)),
   )
 }
 
