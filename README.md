@@ -3,7 +3,16 @@
 This library provides utilities to implement the concept of emitting one wide log event
 after processing a request in Go.
 
+The steps are the following:
+
+- We define a struct that we are going to update/populate when serving a request.
+- We implement the [`Log`](./model.go#L9) method of the [`LogEvent`](./model.go) interface.
+- When serving the request, we populate that struct with all the useful information that we want to see in a log entry.
+- Once the request is served, the library will log that wide event by calling the method `Log` we implemented.
+
 This is better described in [loggingsucks][loggingsucks].
+
+To see it directly in action, check the [examples](examples) folder.
 
 ## Requirements
 
@@ -15,7 +24,13 @@ This is better described in [loggingsucks][loggingsucks].
 go get github.com/manuelarte/logevent
 ```
 
-## Features
+🚀 ## Features
+
+The library provides a generic function that can be used
+to implement the concept of adding a LogEvent to a `context.Context`, then do
+some work, and then `Log` that `LogEvent`.
+
+But it also provides some out-of-the-box implementations for:
 
 ### HTTP Middleware
 
@@ -64,7 +79,7 @@ func registerRoutes() {
 }
 
 func myHandler(w http.ResponseWriter, r *http.Request) {
-  // Step 3. Update your log event while handling the request.
+  // Step 3. Update your log event while serving the request.
   _ = logeventmiddleware.UpdateLogEvent(r.Context(), func(t *transferLogEvent) {
     t.Source = "Alice"
     t.Target = "Bob"
