@@ -24,7 +24,7 @@ To see it directly in action, check the [examples](examples) folder.
 go get github.com/manuelarte/logevent
 ```
 
-🚀 ## Features
+## 🚀 Features
 
 The library provides a generic function that can be used
 to implement the concept of adding a LogEvent to a `context.Context`, then do
