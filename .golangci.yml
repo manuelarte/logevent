@@ -52,6 +52,14 @@ linters:
     - zerologlint  # Not using zerolog.
 
   settings:
+    #keep-sorted start
+    custom:
+      testcomments:
+        type: module
+        description: lint that follows standards described in TestComments.
+      structinit:
+        type: module
+        description: check struct's field initialization order matches struct's field declaration.
     cyclop:
       max-complexity: 30
       package-average: 10
@@ -152,6 +160,7 @@ linters:
       align: false
     usetesting:
       os-temp-dir: true
+    #keep-sorted end
 
   exclusions:
     presets:
