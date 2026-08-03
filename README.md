@@ -1,14 +1,21 @@
 # LogEvent
 
-This library provides utilities to implement the concept of emitting one wide log event
-after processing a request in Go.
+[![CI](https://github.com/manuelarte/logevent/actions/workflows/ci.yml/badge.svg)](https://github.com/manuelarte/logevent/actions/workflows/ci.yml)
+
+This library provides utilities to implement the concept of emitting one canonical log (wide log event)
+after processing an unit of work, inspired by logging patterns from companies like Stripe or Google
+
+This library provides the raw functionality to implement for any unit of work, but also provides
+two middleware's, one for HTTP and another one for gRPC to be used out of the box.
+Check the [examples](./examples) folder for more information.
 
 The steps are the following:
 
 - We define a struct that we are going to update/populate when serving a request.
 - We implement the [`Log`](./model.go#L9) method of the [`LogEvent`](./model.go) interface.
-- When serving the request, we populate that struct with all the useful information that we want to see in a log entry.
-- Once the request is served, the library will log that wide event by calling the method `Log` we implemented.
+This allows us to change the way we want to log the event based on the values.
+- When serving the unit of work, we populate that struct event with all the useful information that we want to see in a the log entry.
+- Once the unit of work is served, the library will log that canonical log event by calling the method `Log` we implemented.
 
 This is better described in [loggingsucks][loggingsucks].
 

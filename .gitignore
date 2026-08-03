@@ -34,3 +34,5 @@ go.work.sum
 
 .DS_Store
 ./custom-gcl
+
+custom-gcl
