@@ -1,6 +1,7 @@
 # LogEvent
 
 [![CI](https://github.com/manuelarte/logevent/actions/workflows/ci.yml/badge.svg)](https://github.com/manuelarte/logevent/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/manuelarte/logevent.svg)](https://pkg.go.dev/github.com/manuelarte/logevent)
 
 This library provides utilities to implement the concept of emitting one canonical log (wide log event)
 after processing a unit of work, inspired by logging patterns from companies like Stripe or Google
