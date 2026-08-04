@@ -51,13 +51,3 @@ func (w *WrapperLogEvent[L, T, PT]) Log(ctx context.Context, li L) {
 		w.le.Log(ctx, li)
 	})
 }
-
-// UpdateLogEvent updates the log event with the function f.
-func UpdateLogEvent[L, T any, PT PtrLogEvent[L, T]](ctx context.Context, f func(t PT)) error {
-	v, ok := ctx.Value(LogEventKey[L, T, PT]{}).(*WrapperLogEvent[L, T, PT])
-	if !ok {
-		return logevent.ErrLogEventNotInitialized
-	}
-
-	return v.Update(f)
-}
