@@ -24,7 +24,7 @@ import (
 //
 // This design allows handlers to update the log event during request processing, and ensures
 // the log event is only logged once and is thread-safe.
-func HandleWithLogEvent[L, T any, PT internal.PtrLogEvent[L, T]](
+func HandleWithLogEvent[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](
 	ctx context.Context,
 	t T,
 	logger L,
@@ -60,7 +60,7 @@ func HandleWithLogEvent[L, T any, PT internal.PtrLogEvent[L, T]](
 // This design allows handlers to update the log event during request processing and ensures
 // the log event is only logged once and is thread-safe.
 // To add more context to the log event, use UpdateLogEvent.
-func AddLogEventToContext[L, T any, PT internal.PtrLogEvent[L, T]](
+func AddLogEventToContext[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](
 	parent context.Context,
 	t T,
 ) context.Context {
@@ -103,7 +103,7 @@ func AddLogEventToContext[L, T any, PT internal.PtrLogEvent[L, T]](
 //		})
 //		return &pb.Response{}, nil
 //	}
-func UpdateLogEvent[L, T any, PT internal.PtrLogEvent[L, T]](ctx context.Context, f func(t PT)) error {
+func UpdateLogEvent[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](ctx context.Context, f func(t PT)) error {
 	v, ok := ctx.Value(internal.LogEventKey[L, T, PT]{}).(*internal.WrapperLogEvent[L, T, PT])
 	if !ok {
 		return logevent.ErrLogEventNotInitialized

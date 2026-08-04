@@ -5,6 +5,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/manuelarte/logevent"
 	"github.com/manuelarte/logevent/internal"
 	"github.com/manuelarte/logevent/middlewares"
 )
@@ -42,7 +43,7 @@ import (
 //		return slog.Default()
 //	})
 //	grpc.NewServer(grpc.ChainUnaryInterceptor(interceptor))
-func UnaryServerInterceptor[L, T any, PT internal.PtrLogEvent[L, T]](
+func UnaryServerInterceptor[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](
 	t T,
 	logger L,
 ) grpc.UnaryServerInterceptor {

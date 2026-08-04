@@ -3,10 +3,10 @@
 [![CI](https://github.com/manuelarte/logevent/actions/workflows/ci.yml/badge.svg)](https://github.com/manuelarte/logevent/actions/workflows/ci.yml)
 
 This library provides utilities to implement the concept of emitting one canonical log (wide log event)
-after processing an unit of work, inspired by logging patterns from companies like Stripe or Google
+after processing a unit of work, inspired by logging patterns from companies like Stripe or Google
 
-This library provides the raw functionality to implement for any unit of work, but also provides
-two middleware's, one for HTTP and another one for gRPC to be used out of the box.
+This library provides the raw functionality to implement for any unit of work but also provides
+two middlewares, one for HTTP and another one for gRPC to be used out of the box.
 Check the [examples](./examples) folder for more information.
 
 The steps are the following:
