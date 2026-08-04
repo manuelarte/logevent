@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/manuelarte/logevent"
 	"github.com/manuelarte/logevent/internal"
 	"github.com/manuelarte/logevent/middlewares"
 )
@@ -36,7 +37,7 @@ import (
 //	handler := AddLogEventMiddleware(RequestLog{}, func(ctx context.Context) logevent.LogInterface {
 //		return slog.Default()
 //	})(nextHandler)
-func AddLogEventMiddleware[L, T any, PT internal.PtrLogEvent[L, T]](
+func AddLogEventMiddleware[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](
 	t T,
 	logger L,
 ) func(http.Handler) http.Handler {
