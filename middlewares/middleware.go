@@ -6,6 +6,7 @@ package middlewares
 import (
 	"context"
 
+	"github.com/manuelarte/logevent"
 	"github.com/manuelarte/logevent/internal"
 )
 
@@ -13,13 +14,13 @@ import (
 // to the context and executing a handler. It is used by both the HTTP middleware and gRPC interceptor.
 //
 // The function performs the following steps:
-// 1. Creates a per-request copy of the log event struct (to avoid concurrent modifications)
-// 2. Type-asserts the copy to get the pointer type (required by the constraint)
-// 3. Creates a wrapper around the pointer for concurrency support (sync.Once, sync.RWMutex)
-// 4. Stores the wrapper in the context under a type-safe key
-// 5. Defers a call to log the event after the handler completes
-// 6. Calls the provided handler function with the updated context
-// 7. Checks if the handler updated the log event in the context and uses the updated version
+//  1. Creates a per-request copy of the log event struct (to avoid concurrent modifications)
+//  2. Type-asserts the copy to get the pointer type (required by the constraint)
+//  3. Creates a wrapper around the pointer for concurrency support (sync.Once, sync.RWMutex)
+//  4. Stores the wrapper in the context under a type-safe key
+//  5. Defers a call to log the event after the handler completes
+//  6. Calls the provided handler function with the updated context
+//  7. Checks if the handler updated the log event in the context and uses the updated version
 //
 // This design allows handlers to update the log event during request processing, and ensures
 // the log event is only logged once and is thread-safe.
@@ -52,9 +53,9 @@ func HandleWithLogEvent[L, T any, PT internal.PtrLogEvent[L, T]](
 // It can be used to custom add a log event to the context in any kind of scenario.
 //
 // The function performs the following steps:
-// 1. Type-asserts the provided log event to get the pointer type (required by the constraint)
-// 2. Creates a wrapper around the pointer for concurrency support (sync.Once, sync.RWMutex)
-// 3. Stores the wrapper in the context under a type-safe key
+//  1. Type-asserts the provided log event to get the pointer type (required by the constraint)
+//  2. Creates a wrapper around the pointer for concurrency support (sync.Once, sync.RWMutex)
+//  3. Stores the wrapper in the context under a type-safe key
 //
 // This design allows handlers to update the log event during request processing and ensures
 // the log event is only logged once and is thread-safe.
@@ -79,8 +80,8 @@ func AddLogEventToContext[L, T any, PT internal.PtrLogEvent[L, T]](
 // the log event that will be logged after the request completes.
 //
 // Parameters:
-//   - ctx: The context containing the log event (from HTTP request or gRPC call)
-//   - f: A function that receives the pointer to the log event struct and modifies it
+//   - ctx: The context containing the log event.
+//   - f: A function that receives the pointer to the log event struct and modifies it.
 //
 // Returns an error if the log event was not initialized (i.e., the request was not wrapped
 // with AddLogEventMiddleware or UnaryServerInterceptor).
@@ -103,5 +104,10 @@ func AddLogEventToContext[L, T any, PT internal.PtrLogEvent[L, T]](
 //		return &pb.Response{}, nil
 //	}
 func UpdateLogEvent[L, T any, PT internal.PtrLogEvent[L, T]](ctx context.Context, f func(t PT)) error {
-	return internal.UpdateLogEvent[L, T, PT](ctx, f)
+	v, ok := ctx.Value(internal.LogEventKey[L, T, PT]{}).(*internal.WrapperLogEvent[L, T, PT])
+	if !ok {
+		return logevent.ErrLogEventNotInitialized
+	}
+
+	return v.Update(f)
 }
