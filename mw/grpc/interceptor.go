@@ -1,3 +1,4 @@
+// Package grpc provides gRPC interceptors for logevent.
 package grpc
 
 import (
@@ -7,7 +8,7 @@ import (
 
 	"github.com/manuelarte/logevent"
 	"github.com/manuelarte/logevent/internal"
-	"github.com/manuelarte/logevent/middlewares"
+	"github.com/manuelarte/logevent/mw"
 )
 
 // UnaryServerInterceptor returns a new unary server interceptor that emits a log event
@@ -31,17 +32,15 @@ import (
 //		Duration time.Duration
 //	}
 //
-//	func (l RPCLog) Log(ctx context.Context, li logevent.LogInterface) {
+//	func (l RPCLog) Log(ctx context.Context, li *slog.Logger) {
 //		if l.Error != nil {
-//			li.Error("RPC failed", slog.String("method", l.Method), slog.Any("error", l.Error))
+//			li.ErrorContext(ctx, "RPC failed", slog.String("method", l.Method), slog.Any("error", l.Error))
 //		} else {
-//			li.Info("RPC succeeded", slog.String("method", l.Method))
+//			li.InfoContext(ctx, "RPC succeeded", slog.String("method", l.Method))
 //		}
 //	}
 //
-//	interceptor := UnaryServerInterceptor(RPCLog{}, func(ctx context.Context) logevent.LogInterface {
-//		return slog.Default()
-//	})
+//	interceptor := UnaryServerInterceptor(RPCLog{}, slog.Default())
 //	grpc.NewServer(grpc.ChainUnaryInterceptor(interceptor))
 func UnaryServerInterceptor[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](
 	t T,
@@ -58,7 +57,7 @@ func UnaryServerInterceptor[L logevent.Logger, T any, PT internal.PtrLogEvent[L,
 			err  error
 		)
 
-		middlewares.HandleWithLogEvent[L, T, PT](ctx, t, logger, func(ctxWithLogEvent context.Context) {
+		mw.HandleWithLogEvent[L, T, PT](ctx, t, logger, func(ctxWithLogEvent context.Context) {
 			resp, err = handler(ctxWithLogEvent, req)
 		})
 

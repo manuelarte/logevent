@@ -13,19 +13,14 @@ var _ error = new(DifferentLogEventTypeError)
 var ErrLogEventNotInitialized = errors.New("LogEvent not initialized")
 
 type (
+	// DifferentLogEventTypeError is returned when the log event type is different from the previous one.
 	DifferentLogEventTypeError struct {
 		previousType reflect.Type
 		currentType  reflect.Type
 	}
 )
 
-func NewDifferentLogEventTypeError(previousType, currentType reflect.Type) *DifferentLogEventTypeError {
-	return &DifferentLogEventTypeError{
-		previousType: previousType,
-		currentType:  currentType,
-	}
-}
-
+// Error implements the error interface.
 func (l DifferentLogEventTypeError) Error() string {
 	return fmt.Sprintf("LogEvent type mismatch: previous type %v, current type %v", l.previousType, l.currentType)
 }

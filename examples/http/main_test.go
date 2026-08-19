@@ -4,14 +4,12 @@ import (
 	"log/slog"
 	"net/http"
 	"testing"
-
-	"github.com/manuelarte/logevent/middlewares"
 )
 
 // TestEventHandler shows how to add the log event in case the handler needs to be unit tested.
 func TestEventHandler(t *testing.T) {
 	w := myResponseWriter{}
-	ctx := middlewares.AddLogEventToContext[*slog.Logger](t.Context(), myLogEvent{})
+	ctx := mw.AddLogEventToContext[*slog.Logger](t.Context(), myLogEvent{})
 	r, err := http.NewRequestWithContext(ctx, "GET", "/events", nil)
 	if err != nil {
 		t.Fatal(err)

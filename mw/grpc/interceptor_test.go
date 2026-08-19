@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/manuelarte/logevent"
-	"github.com/manuelarte/logevent/middlewares"
+	"github.com/manuelarte/logevent/mw"
 )
 
 type testLogInterface struct {
@@ -31,6 +31,8 @@ func (e *testLogEvent) Log(_ context.Context, li testLogInterface) {
 }
 
 func TestUnaryServerInterceptorLogsAfterHandler(t *testing.T) {
+	t.Parallel()
+
 	got := make([]string, 0)
 	li := testLogInterface{entries: &got}
 
@@ -39,7 +41,7 @@ func TestUnaryServerInterceptorLogsAfterHandler(t *testing.T) {
 	handler := func(ctx context.Context, req any) (any, error) {
 		got = append(got, "handler")
 
-		err := middlewares.UpdateLogEvent(ctx, func(e *testLogEvent) {
+		err := mw.UpdateLogEvent(ctx, func(e *testLogEvent) {
 			e.value = "updated"
 		})
 		if err != nil {
@@ -49,7 +51,7 @@ func TestUnaryServerInterceptorLogsAfterHandler(t *testing.T) {
 		return "response", nil
 	}
 
-	_, err := interceptor(context.Background(), nil, &grpc.UnaryServerInfo{FullMethod: "/test"}, handler)
+	_, err := interceptor(t.Context(), nil, &grpc.UnaryServerInfo{FullMethod: "/test"}, handler)
 	if err != nil {
 		t.Fatalf("interceptor() error = %v", err)
 	}
@@ -67,6 +69,8 @@ func TestUnaryServerInterceptorLogsAfterHandler(t *testing.T) {
 }
 
 func TestUnaryServerInterceptorLogsAfterHandlerError(t *testing.T) {
+	t.Parallel()
+
 	events := make([]string, 0)
 	li := testLogInterface{entries: &events}
 	expectedErr := errors.New("handler error")
@@ -76,7 +80,7 @@ func TestUnaryServerInterceptorLogsAfterHandlerError(t *testing.T) {
 	handler := func(ctx context.Context, req any) (any, error) {
 		events = append(events, "handler")
 
-		err := middlewares.UpdateLogEvent(ctx, func(e *testLogEvent) {
+		err := mw.UpdateLogEvent(ctx, func(e *testLogEvent) {
 			e.value = "error-update"
 		})
 		if err != nil {
@@ -86,7 +90,7 @@ func TestUnaryServerInterceptorLogsAfterHandlerError(t *testing.T) {
 		return nil, expectedErr
 	}
 
-	_, err := interceptor(context.Background(), nil, &grpc.UnaryServerInfo{FullMethod: "/test"}, handler)
+	_, err := interceptor(t.Context(), nil, &grpc.UnaryServerInfo{FullMethod: "/test"}, handler)
 	if !errors.Is(err, expectedErr) {
 		t.Fatalf("interceptor() error = %v, want %v", err, expectedErr)
 	}
@@ -104,7 +108,9 @@ func TestUnaryServerInterceptorLogsAfterHandlerError(t *testing.T) {
 }
 
 func TestUpdateLogEventReturnsErrorWithoutInterceptor(t *testing.T) {
-	err := middlewares.UpdateLogEvent(context.Background(), func(*testLogEvent) {})
+	t.Parallel()
+
+	err := mw.UpdateLogEvent(t.Context(), func(*testLogEvent) {})
 
 	if !errors.Is(err, logevent.ErrLogEventNotInitialized) {
 		t.Fatalf("UpdateLogEvent() error = %v, want %v", err, logevent.ErrLogEventNotInitialized)
@@ -112,6 +118,8 @@ func TestUpdateLogEventReturnsErrorWithoutInterceptor(t *testing.T) {
 }
 
 func TestUnaryServerInterceptorEachRequestGetsFreshInstance(t *testing.T) {
+	t.Parallel()
+
 	entries := make([]string, 0)
 	li := testLogInterface{entries: &entries}
 	pointers := make([]string, 0, 2)
@@ -119,7 +127,7 @@ func TestUnaryServerInterceptorEachRequestGetsFreshInstance(t *testing.T) {
 	interceptor := UnaryServerInterceptor(testLogEvent{events: &entries}, li)
 
 	handler := func(ctx context.Context, req any) (any, error) {
-		err := middlewares.UpdateLogEvent(ctx, func(e *testLogEvent) {
+		err := mw.UpdateLogEvent(ctx, func(e *testLogEvent) {
 			pointers = append(pointers, fmt.Sprintf("%p", e))
 		})
 		if err != nil {
@@ -129,8 +137,8 @@ func TestUnaryServerInterceptorEachRequestGetsFreshInstance(t *testing.T) {
 		return "response", nil
 	}
 
-	interceptor(context.Background(), nil, &grpc.UnaryServerInfo{FullMethod: "/test1"}, handler)
-	interceptor(context.Background(), nil, &grpc.UnaryServerInfo{FullMethod: "/test2"}, handler)
+	interceptor(t.Context(), nil, &grpc.UnaryServerInfo{FullMethod: "/test1"}, handler)
+	interceptor(t.Context(), nil, &grpc.UnaryServerInfo{FullMethod: "/test2"}, handler)
 
 	if len(pointers) != 2 {
 		t.Fatalf("captured pointers = %d, want 2", len(pointers))

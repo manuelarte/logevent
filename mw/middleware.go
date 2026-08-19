@@ -1,7 +1,7 @@
-// Package middlewares provides functionality to use log events in any kind of scenario.
+// Package mw provides functionality to use log events in any kind of scenario.
 // The package http provides an already ready solution for HTTP middleware.
 // The package grpc provides an already ready solution for gRPC server interceptor.
-package middlewares
+package mw
 
 import (
 	"context"
@@ -16,13 +16,13 @@ import (
 // The function performs the following steps:
 //  1. Creates a per-request copy of the log event struct (to avoid concurrent modifications)
 //  2. Type-asserts the copy to get the pointer type (required by the constraint)
-//  3. Creates a wrapper around the pointer for concurrency support (sync.Once, sync.RWMutex)
+//  3. Creates a wrapper around the pointer for concurrency support ([sync.Once], [sync.RWMutex])
 //  4. Stores the wrapper in the context under a type-safe key
 //  5. Defers a call to log the event after the handler completes
 //  6. Calls the provided handler function with the updated context
 //  7. Checks if the handler updated the log event in the context and uses the updated version
 //
-// This design allows handlers to update the log event during request processing, and ensures
+// This design allows handlers to update the log event during request processing and ensures
 // the log event is only logged once and is thread-safe.
 func HandleWithLogEvent[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](
 	ctx context.Context,
@@ -54,7 +54,7 @@ func HandleWithLogEvent[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]]
 //
 // The function performs the following steps:
 //  1. Type-asserts the provided log event to get the pointer type (required by the constraint)
-//  2. Creates a wrapper around the pointer for concurrency support (sync.Once, sync.RWMutex)
+//  2. Creates a wrapper around the pointer for concurrency support ([sync.Once], [sync.RWMutex])
 //  3. Stores the wrapper in the context under a type-safe key
 //
 // This design allows handlers to update the log event during request processing and ensures

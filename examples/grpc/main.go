@@ -12,7 +12,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	healthgrpc "google.golang.org/grpc/health/grpc_health_v1"
 
-	"github.com/manuelarte/logevent/middlewares"
 	logeventgrpc "github.com/manuelarte/logevent/middlewares/grpc"
 )
 
@@ -72,7 +71,7 @@ func (s healthServer) Check(ctx context.Context, req *healthgrpc.HealthCheckRequ
 	// Simulate processing time.
 	time.Sleep(getRandomDuration())
 
-	updateErr := middlewares.UpdateLogEvent(ctx, func(e *myLogEvent) {
+	updateErr := mw.UpdateLogEvent(ctx, func(e *myLogEvent) {
 		e.Service = req.GetService()
 		e.Elapsed = time.Since(start)
 	})
