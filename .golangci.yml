@@ -31,13 +31,12 @@ linters:
     - forcetypeassert  # Used in a different linter
     - ginkgolinter # Related to Ginkgo.
     - goheader  # No need of copyright headers.
-    - gomodguard  # Not needed for a linter
+    - gomodguard  # Not needed
     - gosmopolitan  # No i18n.
     - grouper  # No need of checking expression groups.
     - importas  # No need of aliasing imports.
     - inamedparam  # Not important.
     - ireturn  # No need for this linter here.
-    - paralleltest  # We can't test in parallel.
     - promlinter # Related to prometheus.
     - protogetter # Related to protocol buffer.
     - rowserrcheck # Related to SQL.
@@ -45,7 +44,6 @@ linters:
     - sqlclosecheck # Related to SQL.
     - tagliatelle  # No need for tags.
     - testpackage  # We are testing using google tools.
-    - thelper  # We are testing using google tools.
     - varnamelen  # If applicable, to be checked in a code review.
     - wrapcheck  # Too many false positives for return values defined in internal packages.
     - wsl  # Deprecated, using wsl_v5
@@ -111,6 +109,11 @@ linters:
           paramsOnly: false
         underef:
           skipRecvDeref: false
+    godoclint:
+      default: all
+      options:
+        max-len:
+          length: 120
     godox:
       keywords:
         - FIXME
@@ -172,6 +175,7 @@ linters:
           - errcheck
           - funlen
           - goconst
+          - godoclint
           - gosec
         path: _test\.go
 

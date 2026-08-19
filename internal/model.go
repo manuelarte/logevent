@@ -1,3 +1,4 @@
+// Package internal contains the interfaces used by logevent.
 package internal
 
 import (
@@ -20,7 +21,7 @@ type (
 	}
 
 	// WrapperLogEvent gives some concurrency support to a logevent.LogEvent.
-	// It ensures the Log method is called only once (via sync.Once) and protects
+	// It ensures the Log method is called only once (via [sync.Once]) and protects
 	// concurrent updates to the underlying log event with a mutex.
 	WrapperLogEvent[L logevent.Logger, T any, PT PtrLogEvent[L, T]] struct {
 		once sync.Once
@@ -29,6 +30,7 @@ type (
 	}
 )
 
+// NewWrapperLogEvent creates a new WrapperLogEvent.
 func NewWrapperLogEvent[L logevent.Logger, T any, PT PtrLogEvent[L, T]](le PT) *WrapperLogEvent[L, T, PT] {
 	return &WrapperLogEvent[L, T, PT]{
 		le: le,

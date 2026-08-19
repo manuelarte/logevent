@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/manuelarte/logevent/middlewares"
-	logeventmiddleware "github.com/manuelarte/logevent/middlewares/http"
+	"github.com/manuelarte/logevent/mw"
+	logeventmiddleware "github.com/manuelarte/logevent/mw/http"
 )
 
 func main() {
@@ -51,7 +51,7 @@ func eventHandler(w http.ResponseWriter, r *http.Request) {
 	// Simulate some processing time.
 	time.Sleep(getRandomDuration())
 	elapsed := time.Since(now)
-	err := middlewares.UpdateLogEvent(r.Context(), func(t *myLogEvent) {
+	err := mw.UpdateLogEvent(r.Context(), func(t *myLogEvent) {
 		t.Elapsed = elapsed
 	})
 	if err != nil {
