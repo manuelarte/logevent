@@ -45,6 +45,17 @@ But it also provides some out-of-the-box implementations for:
 This library provides a middleware that can be used to emit a log event after an HTTP request.
 
 ```go
+package main
+
+import (
+ "context"
+ "log/slog"
+ "net/http"
+
+ logeventmiddleware "github.com/manuelarte/logevent/mw"
+ logeventhttp "github.com/manuelarte/logevent/mw/http"
+)
+
 // Step 1. Define your log event struct and how to log it.
 type transferLogEvent struct {
   Source string
@@ -80,7 +91,7 @@ func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
 func registerRoutes() {
   http.Handle(
     "/my-endpoint",
-    logeventmiddleware.AddLogEventMiddleware(transferLogEvent{}, slog.Default())(http.HandlerFunc(myHandler)),
+   logeventhttp.AddLogEventMiddleware(transferLogEvent{}, slog.Default())(http.HandlerFunc(myHandler)),
   )
 }
 
@@ -105,57 +116,67 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
 This library also provides a unary server interceptor for your gRPC server.
 
 ```go
+package main
+
+import (
+ "context"
+ "log/slog"
+
+ logeventmiddleware "github.com/manuelarte/logevent/mw"
+ logeventgrpc "github.com/manuelarte/logevent/mw/grpc"
+)
+
 // Step 1. Define your log event struct and how to log it.
 type transferLogEvent struct {
-  Source string
-  Target string
-  Amount string
-  Err    error
+ Source string
+ Target string
+ Amount string
+ Err    error
 }
 
 // Log the event either with Info if everything succeeded or with Error if there was an error.
 func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
-  if e.Err != nil {
-    li.ErrorContext(
-      ctx,
-      "Error when transferring money",
-      slog.String("source", e.Source),
-      slog.String("target", e.Target),
-      slog.String("amount", e.Amount),
-      slog.Any("error", e.Err),
-    )
-    return
-  }
-
-  li.InfoContext(
-    ctx,
-    "Money transferred successfully",
-    slog.String("source", e.Source),
-    slog.String("target", e.Target),
-    slog.String("amount", e.Amount),
+ if e.Err != nil {
+  li.ErrorContext(
+   ctx,
+   "Error when transferring money",
+   slog.String("source", e.Source),
+   slog.String("target", e.Target),
+   slog.String("amount", e.Amount),
+   slog.Any("error", e.Err),
   )
+  return
+ }
+
+ li.InfoContext(
+  ctx,
+  "Money transferred successfully",
+  slog.String("source", e.Source),
+  slog.String("target", e.Target),
+  slog.String("amount", e.Amount),
+ )
 }
 
 // Step 2. Add the interceptor to your server.
 server := grpc.NewServer(
-  grpc.UnaryInterceptor(
-    logeventgrpc.UnaryServerInterceptor(transferLogEvent{}, slog.Default()),
-  ),
+grpc.UnaryInterceptor(
+logeventgrpc.UnaryServerInterceptor(transferLogEvent{}, slog.Default()),
+),
 )
 
 func (s transferMoneyServer) Transfer(ctx context.Context, req *TransferMoneyRequest) (*TransferMoneyResponse, error) {
-  // Step 3. Update your log event while handling the request.
-  _ = logeventmiddleware.UpdateLogEvent(ctx, func(t *transferLogEvent) {
-    t.Source = "Alice"
-    t.Target = "Bob"
-    t.Amount = "100"
-  })
-  ...
-  err := transferMoney("Alice", "Bob", 100)
-  _ = logeventmiddleware.UpdateLogEvent(ctx, func(t *transferLogEvent) {
-    t.Err = err
-  })
-  ...
+ // Step 3. Update your log event while handling the request.
+ _ = logeventmiddleware.UpdateLogEvent(ctx, func(t *transferLogEvent) {
+  t.Source = "Alice"
+  t.Target = "Bob"
+  t.Amount = "100"
+ })
+ ...
+ err := transferMoney("Alice", "Bob", 100)
+ _ = logeventmiddleware.UpdateLogEvent(ctx, func(t *transferLogEvent) {
+  t.Err = err
+ })
+ ...
 }
 ```
 
