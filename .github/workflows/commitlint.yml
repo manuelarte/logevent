@@ -5,8 +5,11 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   commitlint:
     runs-on: ubuntu-latest
     steps:
-      - uses: ahmadnassri/action-commit-lint@v2
+      - uses: ahmadnassri/action-commit-lint@c46b910837381d1b39c7b7ede72666d7f3e83222 # v2.1.17
