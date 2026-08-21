@@ -13,7 +13,8 @@ formatters:
         - pattern: "interface{}"
           replacement: "any"
     gofumpt:
-      extra-rules: true
+      extra:
+        group-params: true
     gci:
       sections:
         - standard
@@ -28,6 +29,7 @@ linters:
     - err113  # This leads to lots of unnecessary allocations and boilerplate.
     - errchkjson  # No json.
     - exhaustruct  # If applicable, to be checked in code reviews.
+    - exhaustruct_v5
     - forcetypeassert  # Used in a different linter
     - ginkgolinter # Related to Ginkgo.
     - goheader  # No need of copyright headers.
