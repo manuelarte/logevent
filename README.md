@@ -40,6 +40,60 @@ some work, and then `Log` that `LogEvent`.
 
 But it also provides some out-of-the-box implementations for:
 
+### Canonical Logging (without middleware)
+
+The library provides primitives to implement canonical logging without needing middleware.
+This is useful for background jobs, service layers, or any scenario where you want
+to manually control the log event lifecycle.
+
+```go
+package main
+
+import (
+  "context"
+  "log/slog"
+
+  logeventmiddleware "github.com/manuelarte/logevent/mw"
+)
+
+type taskLogEvent struct {
+  TaskID  string
+  Status  string
+  Elapsed int64
+}
+
+func (e taskLogEvent) Log(ctx context.Context, li *slog.Logger) {
+  li.InfoContext(ctx, "Task completed", slog.String("task_id", e.TaskID), slog.String("status", e.Status))
+}
+
+func processTask(ctx context.Context, taskID string, logger *slog.Logger) error {
+  // Step 1. Add the log event to the context
+  ctx = logeventmiddleware.AddLogEventToContext(ctx, taskLogEvent{TaskID: taskID})
+
+  // Step 2. Get the defer function that will log the event
+  deferFunc, err := logeventmiddleware.LogEventFunc[*slog.Logger, taskLogEvent, *taskLogEvent](ctx, logger)
+  if err != nil {
+    return err
+  }
+  defer deferFunc()
+
+  // Step 3. Update the log event during processing
+  _ = logeventmiddleware.UpdateLogEvent(ctx, func(e *taskLogEvent) {
+    e.Status = "processing"
+  })
+
+  // Do some work...
+
+  // Step 4. Update the log event with final status
+  _ = logeventmiddleware.UpdateLogEvent(ctx, func(e *taskLogEvent) {
+    e.Status = "completed"
+  })
+
+  // The log event is automatically logged when the defer is called
+  return nil
+}
+```
+
 ### HTTP Middleware
 
 This library provides a middleware that can be used to emit a log event after an HTTP request.
@@ -197,6 +251,7 @@ This ensures consistent behavior and makes it easy to update the logging logic i
 
 For runnable examples check the [examples](examples) folder.
 
+- Canonical logging example: [`examples/canonical/main.go`](examples/canonical/main.go)
 - HTTP example: [`examples/http/main.go`](examples/http/main.go)
 - gRPC example: [`examples/grpc/main.go`](examples/grpc/main.go)
 
