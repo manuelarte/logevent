@@ -35,16 +35,10 @@ func HandleWithLogEvent[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]]
 	//nolint:errcheck // impossible to fail because we just added the log event to the context
 	wle := ctx.Value(internal.LogEventKey[L, T, PT]{}).(*internal.WrapperLogEvent[L, T, PT])
 
-	defer func(ctx context.Context) {
-		wle.Log(ctx, logger)
-	}(ctx)
+	deferFunc, _ := LogEventFunc[L, T, PT](ctx, logger)
+	defer deferFunc()
 
 	handler(ctx)
-
-	v, ok := ctx.Value(internal.LogEventKey[L, T, PT]{}).(*internal.WrapperLogEvent[L, T, PT])
-	if ok {
-		wle = v
-	}
 
 	return wle
 }
@@ -110,4 +104,26 @@ func UpdateLogEvent[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](ctx
 	}
 
 	return v.Update(f)
+}
+
+// LogEventFunc logs the log event stored in the context.
+//
+// Parameters:
+//   - ctx: The context containing the log event.
+//   - l: The log event to log.
+//
+// Returns a function that logs the event and an error if the log event was not initialized
+// (i.e., the request was not wrapped with AddLogEventToContext).
+func LogEventFunc[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](
+	ctx context.Context,
+	l L,
+) (func(), error) {
+	wle, ok := ctx.Value(internal.LogEventKey[L, T, PT]{}).(*internal.WrapperLogEvent[L, T, PT])
+	if !ok {
+		return nil, logevent.ErrLogEventNotInitialized
+	}
+
+	return func() {
+		wle.Log(ctx, l)
+	}, nil
 }
