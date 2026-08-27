@@ -73,9 +73,9 @@ func AddLogEventToContext[L Logger, T any, PT PtrLogEvent[L, T]](
 //
 // Parameters:
 //   - ctx: The context containing the log event.
-//   - f: A function that receives the pointer to the log event struct and modifies it.
+//   - f: A function that receives the pointer to the log event struct and mutates it.
 //
-// Returns an error if the log event was not initialized (i.e., the request was not wrapped
+// Returns an error if the log event was not initialized (i.e., the unit of work was not wrapped
 // with AddLogEventMiddleware, UnaryServerInterceptor, or AddLogEventToContext).
 //
 // Example with HTTP:
