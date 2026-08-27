@@ -13,8 +13,7 @@ import (
 // Parameters:
 //   - t: The log event struct template that will be copied for each request and logged
 //     after the request is served. Must be a type whose pointer implements logevent.LogEvent.
-//   - f: A function that returns the logging framework to use. It's called when logging,
-//     allowing you to provide a context-aware logger.
+//   - logger: The logger instance used when emitting the final log entry.
 //
 // The middleware wraps each request, creates a per-request copy of the log event, stores it
 // in the context, and logs it after the handler completes. Handlers can update the log event
