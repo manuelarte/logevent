@@ -10,6 +10,12 @@ import (
 	"github.com/manuelarte/logevent/internal"
 )
 
+type (
+	// logEventKey represents the key to be used to store the LogEvent in the context.
+	// It is a generic type that ensures type-safety when storing and retrieving log events.
+	logEventKey[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]] struct{}
+)
+
 // HandleWithLogEvent is a generic helper function that encapsulates the common pattern of adding a log event
 // to the context and executing a handler. It is used by both the HTTP middleware and gRPC interceptor.
 //
@@ -33,7 +39,7 @@ func HandleWithLogEvent[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]]
 	tCopy := t // per-request copy
 	ctx = AddLogEventToContext[L, T, PT](ctx, tCopy)
 	//nolint:errcheck // impossible to fail because we just added the log event to the context
-	wle := ctx.Value(internal.LogEventKey[L, T, PT]{}).(*internal.WrapperLogEvent[L, T, PT])
+	wle := ctx.Value(logEventKey[L, T, PT]{}).(*internal.WrapperLogEvent[L, T, PT])
 
 	deferFunc, _ := LogEventFunc[L, T, PT](ctx, logger)
 	defer deferFunc()
@@ -66,7 +72,7 @@ func AddLogEventToContext[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T
 
 	wle := internal.NewWrapperLogEvent(pt)
 
-	return context.WithValue(parent, internal.LogEventKey[L, T, PT]{}, wle)
+	return context.WithValue(parent, logEventKey[L, T, PT]{}, wle)
 }
 
 // UpdateLogEvent updates the log event stored in the context during request processing.
@@ -98,7 +104,7 @@ func AddLogEventToContext[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T
 //		return &pb.Response{}, nil
 //	}
 func UpdateLogEvent[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](ctx context.Context, f func(t PT)) error {
-	v, ok := ctx.Value(internal.LogEventKey[L, T, PT]{}).(*internal.WrapperLogEvent[L, T, PT])
+	v, ok := ctx.Value(logEventKey[L, T, PT]{}).(*internal.WrapperLogEvent[L, T, PT])
 	if !ok {
 		return logevent.ErrLogEventNotInitialized
 	}
@@ -118,7 +124,7 @@ func LogEventFunc[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](
 	ctx context.Context,
 	l L,
 ) (func(), error) {
-	wle, ok := ctx.Value(internal.LogEventKey[L, T, PT]{}).(*internal.WrapperLogEvent[L, T, PT])
+	wle, ok := ctx.Value(logEventKey[L, T, PT]{}).(*internal.WrapperLogEvent[L, T, PT])
 	if !ok {
 		return nil, logevent.ErrLogEventNotInitialized
 	}

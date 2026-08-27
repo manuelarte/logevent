@@ -9,10 +9,6 @@ import (
 )
 
 type (
-	// LogEventKey represents the key to be used to store the LogEvent in the context.
-	// It is a generic type that ensures type-safety when storing and retrieving log events.
-	LogEventKey[L logevent.Logger, T any, PT PtrLogEvent[L, T]] struct{}
-
 	// PtrLogEvent helps to make that only a pointer can be passed to the middleware.
 	// It is a constraint that ensures PT is a pointer to type T and implements logevent.LogEvent.
 	PtrLogEvent[L logevent.Logger, T any] interface {
