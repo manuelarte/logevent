@@ -32,7 +32,9 @@ func HandleWithLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](
 ) {
 	tCopy := t // per-request copy
 	ctx, deferFunc := AddLogEventToContext[L, T, PT](ctx, tCopy)
-	defer deferFunc(logger)
+	defer func() {
+		_ = deferFunc(logger)
+	}()
 
 	handler(ctx)
 }
@@ -100,10 +102,7 @@ func UpdateLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](ctx context.Context, 
 	return v.Update(f)
 }
 
-func logItFunc[L Logger, T any, PT PtrLogEvent[L, T]](
-	ctx context.Context,
-	l L,
-) error {
+func logItFunc[L Logger, T any, PT PtrLogEvent[L, T]](ctx context.Context, l L) error {
 	wle, ok := ctx.Value(logEventKey[L, T, PT]{}).(*WrapperLogEvent[L, T, PT])
 	if !ok {
 		return ErrLogEventNotInitialized

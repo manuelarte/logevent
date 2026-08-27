@@ -34,15 +34,9 @@ func handle(i int) error {
 	// Simulate some background work that needs logging
 
 	// Step 1: Add the log event to the context
-	ctx := logevent.AddLogEventToContext[*slog.Logger](context.Background(), examples.MyLogEvent{})
-
+	ctx, logFunc := logevent.AddLogEventToContext[*slog.Logger](context.Background(), examples.MyLogEvent{})
 	// Step 2: Get the defer function that will log the event
-	deferFunc, err := logevent.LogItFunc[*slog.Logger, examples.MyLogEvent, *examples.MyLogEvent](ctx, slog.Default())
-	if err != nil {
-		return err
-	}
-	// Step 3: Defer the logging call
-	defer deferFunc()
+	defer logFunc(slog.Default())
 
 	// Step 4: Process some work and update the log event as needed
 	start := time.Now()
