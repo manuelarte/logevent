@@ -31,6 +31,7 @@ func HandleWithLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](
 	handler func(context.Context),
 ) {
 	tCopy := t // per-request copy
+
 	ctx, deferFunc := AddLogEventToContext[L, T, PT](ctx, tCopy)
 	defer func() {
 		_ = deferFunc(logger)
@@ -62,6 +63,7 @@ func AddLogEventToContext[L Logger, T any, PT PtrLogEvent[L, T]](
 
 	wle := newWrapperLogEvent(pt)
 	newCtx := context.WithValue(parent, logEventKey[L, T, PT]{}, wle)
+
 	return newCtx, func(l L) error { return logItFunc[L, T, PT](newCtx, l) }
 }
 
