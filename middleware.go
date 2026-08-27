@@ -60,7 +60,7 @@ func AddLogEventToContext[L Logger, T any, PT PtrLogEvent[L, T]](
 
 	wle := newWrapperLogEvent(pt)
 	newCtx := context.WithValue(parent, logEventKey[L, T, PT]{}, wle)
-	return newCtx, func(l L) error { return LogItFunc[L, T, PT](newCtx, l) }
+	return newCtx, func(l L) error { return logItFunc[L, T, PT](newCtx, l) }
 }
 
 // UpdateLogEvent updates the log event stored in the context during request processing.
@@ -100,15 +100,7 @@ func UpdateLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](ctx context.Context, 
 	return v.Update(f)
 }
 
-// LogItFunc logs the log event stored in the context.
-//
-// Parameters:
-//   - ctx: The context containing the log event.
-//   - l: The logger to pass to the LogEvent's Log method.
-//
-// Returns a function that logs the event and an error if the log event was not initialized
-// (i.e., the request was not wrapped with AddLogEventToContext).
-func LogItFunc[L Logger, T any, PT PtrLogEvent[L, T]](
+func logItFunc[L Logger, T any, PT PtrLogEvent[L, T]](
 	ctx context.Context,
 	l L,
 ) error {
