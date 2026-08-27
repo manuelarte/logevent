@@ -29,18 +29,12 @@ func HandleWithLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](
 	t T,
 	logger L,
 	handler func(context.Context),
-) *WrapperLogEvent[L, T, PT] {
+) {
 	tCopy := t // per-request copy
-	ctx = AddLogEventToContext[L, T, PT](ctx, tCopy)
-	//nolint:errcheck // impossible to fail because we just added the log event to the context
-	wle := ctx.Value(logEventKey[L, T, PT]{}).(*WrapperLogEvent[L, T, PT])
-
-	deferFunc, _ := LogItFunc[L, T, PT](ctx, logger)
-	defer deferFunc()
+	ctx, deferFunc := AddLogEventToContext[L, T, PT](ctx, tCopy)
+	defer deferFunc(logger)
 
 	handler(ctx)
-
-	return wle
 }
 
 // AddLogEventToContext adds a log event to the context.
@@ -57,7 +51,7 @@ func HandleWithLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](
 func AddLogEventToContext[L Logger, T any, PT PtrLogEvent[L, T]](
 	parent context.Context,
 	t T,
-) context.Context {
+) (context.Context, func(l L) error) {
 	// Hack: bridge *T -> PT through interface assertion.
 	pt, ok := any(&t).(PT)
 	if !ok {
@@ -65,8 +59,8 @@ func AddLogEventToContext[L Logger, T any, PT PtrLogEvent[L, T]](
 	}
 
 	wle := newWrapperLogEvent(pt)
-
-	return context.WithValue(parent, logEventKey[L, T, PT]{}, wle)
+	newCtx := context.WithValue(parent, logEventKey[L, T, PT]{}, wle)
+	return newCtx, func(l L) error { return LogItFunc[L, T, PT](newCtx, l) }
 }
 
 // UpdateLogEvent updates the log event stored in the context during request processing.
@@ -117,13 +111,13 @@ func UpdateLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](ctx context.Context, 
 func LogItFunc[L Logger, T any, PT PtrLogEvent[L, T]](
 	ctx context.Context,
 	l L,
-) (func(), error) {
+) error {
 	wle, ok := ctx.Value(logEventKey[L, T, PT]{}).(*WrapperLogEvent[L, T, PT])
 	if !ok {
-		return nil, ErrLogEventNotInitialized
+		return ErrLogEventNotInitialized
 	}
 
-	return func() {
-		wle.Log(ctx, l)
-	}, nil
+	wle.Log(ctx, l)
+
+	return nil
 }
