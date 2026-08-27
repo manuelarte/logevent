@@ -6,8 +6,6 @@ import (
 	"net/http"
 
 	"github.com/manuelarte/logevent"
-	"github.com/manuelarte/logevent/internal"
-	"github.com/manuelarte/logevent/mw"
 )
 
 // AddLogEventMiddleware returns a middleware that adds a request-scoped logger to the context.
@@ -36,13 +34,13 @@ import (
 //	}
 //
 //	handler := AddLogEventMiddleware(RequestLog{}, slog.Default())(nextHandler)
-func AddLogEventMiddleware[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](
+func AddLogEventMiddleware[L logevent.Logger, T any, PT logevent.PtrLogEvent[L, T]](
 	t T,
 	logger L,
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			mw.HandleWithLogEvent[L, T, PT](r.Context(), t, logger, func(ctx context.Context) {
+			logevent.HandleWithLogEvent[L, T, PT](r.Context(), t, logger, func(ctx context.Context) {
 				r = r.WithContext(ctx)
 				next.ServeHTTP(w, r)
 			})

@@ -9,7 +9,6 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/manuelarte/logevent"
-	"github.com/manuelarte/logevent/mw"
 )
 
 type testLogInterface struct {
@@ -41,7 +40,7 @@ func TestUnaryServerInterceptorLogsAfterHandler(t *testing.T) {
 	handler := func(ctx context.Context, req any) (any, error) {
 		got = append(got, "handler")
 
-		err := mw.UpdateLogEvent(ctx, func(e *testLogEvent) {
+		err := logevent.UpdateLogEvent(ctx, func(e *testLogEvent) {
 			e.value = "updated"
 		})
 		if err != nil {
@@ -80,7 +79,7 @@ func TestUnaryServerInterceptorLogsAfterHandlerError(t *testing.T) {
 	handler := func(ctx context.Context, req any) (any, error) {
 		events = append(events, "handler")
 
-		err := mw.UpdateLogEvent(ctx, func(e *testLogEvent) {
+		err := logevent.UpdateLogEvent(ctx, func(e *testLogEvent) {
 			e.value = "error-update"
 		})
 		if err != nil {
@@ -110,7 +109,7 @@ func TestUnaryServerInterceptorLogsAfterHandlerError(t *testing.T) {
 func TestUpdateLogEventReturnsErrorWithoutInterceptor(t *testing.T) {
 	t.Parallel()
 
-	err := mw.UpdateLogEvent(t.Context(), func(*testLogEvent) {})
+	err := logevent.UpdateLogEvent(t.Context(), func(*testLogEvent) {})
 
 	if !errors.Is(err, logevent.ErrLogEventNotInitialized) {
 		t.Fatalf("UpdateLogEvent() error = %v, want %v", err, logevent.ErrLogEventNotInitialized)
@@ -127,7 +126,7 @@ func TestUnaryServerInterceptorEachRequestGetsFreshInstance(t *testing.T) {
 	interceptor := UnaryServerInterceptor(testLogEvent{events: &entries}, li)
 
 	handler := func(ctx context.Context, req any) (any, error) {
-		err := mw.UpdateLogEvent(ctx, func(e *testLogEvent) {
+		err := logevent.UpdateLogEvent(ctx, func(e *testLogEvent) {
 			pointers = append(pointers, fmt.Sprintf("%p", e))
 		})
 		if err != nil {

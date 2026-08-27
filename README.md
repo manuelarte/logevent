@@ -4,18 +4,18 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/manuelarte/logevent.svg)](https://pkg.go.dev/github.com/manuelarte/logevent)
 
 This library provides utilities to implement the concept of emitting one canonical log (wide log event)
-after processing a unit of work, inspired by logging patterns from companies like Stripe or Google
+after processing a unit of work, inspired by logging patterns from companies like Stripe or Google.
 
-This library provides the raw functionality to implement for any unit of work but also provides
-two middlewares, one for HTTP and another one for gRPC to be used out of the box.
+This library provides the raw functionality to implement canonical logging for any unit of work, and also provides
+two middlewares (one for HTTP and another for gRPC) to be used out of the box.
 Check the [examples](./examples) folder for more information.
 
 The steps are the following:
 
 - We define a struct that we are going to update/populate when serving a request.
-- We implement the [`Log`](./model.go#L9) method of the [`LogEvent`](./model.go) interface.
+- We implement the [`Log`](models.go#L14) method of the [`LogEvent`](models.go#L13) interface.
 This allows us to change the way we want to log the event based on the values.
-- When serving the unit of work, we populate that struct event with all the useful information that we want to see in a the log entry.
+- When serving the unit of work, we populate that struct event with all the useful information that we want to see in the log entry.
 - Once the unit of work is served, the library will log that canonical log event by calling the method `Log` we implemented.
 
 This is better described in [loggingsucks][loggingsucks].
@@ -34,11 +34,11 @@ go get github.com/manuelarte/logevent
 
 ## 🚀 Features
 
-The library provides a generic function that can be used
-to implement the concept of adding a LogEvent to a `context.Context`, then do
-some work, and then `Log` that `LogEvent`.
+The library provides generic functions that can be used
+to implement the concept of adding a LogEvent to a `context.Context`, performing
+some work while updating the log event, and then calling `Log` on that `LogEvent`.
 
-But it also provides some out-of-the-box implementations for:
+It also provides out-of-the-box implementations for:
 
 ### Canonical Logging (without middleware)
 
@@ -50,47 +50,47 @@ to manually control the log event lifecycle.
 package main
 
 import (
-  "context"
-  "log/slog"
+	"context"
+	"log/slog"
 
-  logeventmiddleware "github.com/manuelarte/logevent/mw"
+	"github.com/manuelarte/logevent"
 )
 
 type taskLogEvent struct {
-  TaskID  string
-  Status  string
-  Elapsed int64
+	TaskID  string
+	Status  string
+	Elapsed int64
 }
 
 func (e taskLogEvent) Log(ctx context.Context, li *slog.Logger) {
-  li.InfoContext(ctx, "Task completed", slog.String("task_id", e.TaskID), slog.String("status", e.Status))
+	li.InfoContext(ctx, "Task completed", slog.String("task_id", e.TaskID), slog.String("status", e.Status))
 }
 
 func processTask(ctx context.Context, taskID string, logger *slog.Logger) error {
-  // Step 1. Add the log event to the context
-  ctx = logeventmiddleware.AddLogEventToContext(ctx, taskLogEvent{TaskID: taskID})
+	// Step 1. Add the log event to the context
+	ctx = logevent.AddLogEventToContext[*slog.Logger](ctx, taskLogEvent{TaskID: taskID})
 
-  // Step 2. Get the defer function that will log the event
-  deferFunc, err := logeventmiddleware.LogEventFunc[*slog.Logger, taskLogEvent, *taskLogEvent](ctx, logger)
-  if err != nil {
-    return err
-  }
-  defer deferFunc()
+	// Step 2. Get the defer function that will log the event
+	deferFunc, err := logevent.LogItFunc[*slog.Logger](ctx, logger)
+	if err != nil {
+		return err
+	}
+	defer deferFunc()
 
-  // Step 3. Update the log event during processing
-  _ = logeventmiddleware.UpdateLogEvent(ctx, func(e *taskLogEvent) {
-    e.Status = "processing"
-  })
+	// Step 3. Update the log event during processing
+	_ = logevent.UpdateLogEvent(ctx, func(e *taskLogEvent) {
+		e.Status = "processing"
+	})
 
-  // Do some work...
+	// Do some work...
 
-  // Step 4. Update the log event with final status
-  _ = logeventmiddleware.UpdateLogEvent(ctx, func(e *taskLogEvent) {
-    e.Status = "completed"
-  })
+	// Step 4. Update the log event with final status
+	_ = logevent.UpdateLogEvent(ctx, func(e *taskLogEvent) {
+		e.Status = "completed"
+	})
 
-  // The log event is automatically logged when the defer is called
-  return nil
+	// The log event is automatically logged when the defer is called
+	return nil
 }
 ```
 
@@ -102,66 +102,66 @@ This library provides a middleware that can be used to emit a log event after an
 package main
 
 import (
- "context"
- "log/slog"
- "net/http"
+	"context"
+	"log/slog"
+	"net/http"
 
- logeventmiddleware "github.com/manuelarte/logevent/mw"
- logeventhttp "github.com/manuelarte/logevent/mw/http"
+	"github.com/manuelarte/logevent"
+	logeventhttp "github.com/manuelarte/logevent/mw/http"
 )
 
 // Step 1. Define your log event struct and how to log it.
 type transferLogEvent struct {
-  Source string
-  Target string
-  Amount string
-  Err    error
+	Source string
+	Target string
+	Amount string
+	Err    error
 }
 
 // Log the event either with Info if everything succeeded or with Error if there was an error.
 func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
-  if e.Err != nil {
-    li.ErrorContext(
-      ctx,
-      "Error when transferring money",
-      slog.String("source", e.Source),
-      slog.String("target", e.Target),
-      slog.String("amount", e.Amount),
-      slog.Any("error", e.Err),
-    )
-    return
-  }
+	if e.Err != nil {
+		li.ErrorContext(
+			ctx,
+			"Error when transferring money",
+			slog.String("source", e.Source),
+			slog.String("target", e.Target),
+			slog.String("amount", e.Amount),
+			slog.Any("error", e.Err),
+		)
+		return
+	}
 
-  li.InfoContext(
-    ctx,
-    "Money transferred successfully",
-    slog.String("source", e.Source),
-    slog.String("target", e.Target),
-    slog.String("amount", e.Amount),
-  )
+	li.InfoContext(
+		ctx,
+		"Money transferred successfully",
+		slog.String("source", e.Source),
+		slog.String("target", e.Target),
+		slog.String("amount", e.Amount),
+	)
 }
 
 // Step 2. Add the middleware to your endpoint.
 func registerRoutes() {
-  http.Handle(
-    "/my-endpoint",
-   logeventhttp.AddLogEventMiddleware(transferLogEvent{}, slog.Default())(http.HandlerFunc(myHandler)),
-  )
+	http.Handle(
+		"/my-endpoint",
+		logeventhttp.AddLogEventMiddleware(transferLogEvent{}, slog.Default())(http.HandlerFunc(myHandler)),
+	)
 }
 
 func myHandler(w http.ResponseWriter, r *http.Request) {
-  // Step 3. Update your log event while serving the request.
-  _ = logeventmiddleware.UpdateLogEvent(r.Context(), func(t *transferLogEvent) {
-    t.Source = "Alice"
-    t.Target = "Bob"
-    t.Amount = "100"
-  })
-  ...
-  err := transferMoney("Alice", "Bob", 100)
-  _ = logeventmiddleware.UpdateLogEvent(r.Context(), func(t *transferLogEvent) {
-    t.Err = err
-  })
-  ...
+	// Step 3. Update your log event while serving the request.
+	_ = logevent.UpdateLogEvent(r.Context(), func(t *transferLogEvent) {
+		t.Source = "Alice"
+		t.Target = "Bob"
+		t.Amount = "100"
+	})
+	// ...
+	err := transferMoney("Alice", "Bob", 100)
+	_ = logevent.UpdateLogEvent(r.Context(), func(t *transferLogEvent) {
+		t.Err = err
+	})
+	// ...
 }
 ```
 
@@ -173,71 +173,73 @@ This library also provides a unary server interceptor for your gRPC server.
 package main
 
 import (
- "context"
- "log/slog"
+	"context"
+	"log/slog"
 
- logeventmiddleware "github.com/manuelarte/logevent/mw"
- logeventgrpc "github.com/manuelarte/logevent/mw/grpc"
+	"google.golang.org/grpc"
+
+	"github.com/manuelarte/logevent"
+	logeventgrpc "github.com/manuelarte/logevent/mw/grpc"
 )
 
 // Step 1. Define your log event struct and how to log it.
 type transferLogEvent struct {
- Source string
- Target string
- Amount string
- Err    error
+	Source string
+	Target string
+	Amount string
+	Err    error
 }
 
 // Log the event either with Info if everything succeeded or with Error if there was an error.
 func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
- if e.Err != nil {
-  li.ErrorContext(
-   ctx,
-   "Error when transferring money",
-   slog.String("source", e.Source),
-   slog.String("target", e.Target),
-   slog.String("amount", e.Amount),
-   slog.Any("error", e.Err),
-  )
-  return
- }
+	if e.Err != nil {
+		li.ErrorContext(
+			ctx,
+			"Error when transferring money",
+			slog.String("source", e.Source),
+			slog.String("target", e.Target),
+			slog.String("amount", e.Amount),
+			slog.Any("error", e.Err),
+		)
+		return
+	}
 
- li.InfoContext(
-  ctx,
-  "Money transferred successfully",
-  slog.String("source", e.Source),
-  slog.String("target", e.Target),
-  slog.String("amount", e.Amount),
- )
+	li.InfoContext(
+		ctx,
+		"Money transferred successfully",
+		slog.String("source", e.Source),
+		slog.String("target", e.Target),
+		slog.String("amount", e.Amount),
+	)
 }
 
 // Step 2. Add the interceptor to your server.
 server := grpc.NewServer(
-grpc.UnaryInterceptor(
-logeventgrpc.UnaryServerInterceptor(transferLogEvent{}, slog.Default()),
-),
+	grpc.UnaryInterceptor(
+		logeventgrpc.UnaryServerInterceptor(transferLogEvent{}, slog.Default()),
+	),
 )
 
 func (s transferMoneyServer) Transfer(ctx context.Context, req *TransferMoneyRequest) (*TransferMoneyResponse, error) {
- // Step 3. Update your log event while handling the request.
- _ = logeventmiddleware.UpdateLogEvent(ctx, func(t *transferLogEvent) {
-  t.Source = "Alice"
-  t.Target = "Bob"
-  t.Amount = "100"
- })
- ...
- err := transferMoney("Alice", "Bob", 100)
- _ = logeventmiddleware.UpdateLogEvent(ctx, func(t *transferLogEvent) {
-  t.Err = err
- })
- ...
+	// Step 3. Update your log event while handling the request.
+	_ = logevent.UpdateLogEvent(ctx, func(t *transferLogEvent) {
+		t.Source = "Alice"
+		t.Target = "Bob"
+		t.Amount = "100"
+	})
+	// ...
+	err := transferMoney("Alice", "Bob", 100)
+	_ = logevent.UpdateLogEvent(ctx, func(t *transferLogEvent) {
+		t.Err = err
+	})
+	// ...
 }
 ```
 
 ## Architecture
 
 This library provides an HTTP middleware and a gRPC interceptor, but also a
-[generic implementation](./middlewares/middleware.go) for a custom way to serve a request that encapsulates:
+[generic implementation](./middleware.go) for a custom way to serve a request that encapsulates:
 
 1. Creating a per-request copy of the log event struct
 2. Wrapping it with thread-safe access (concurrency support)
@@ -249,7 +251,7 @@ This ensures consistent behavior and makes it easy to update the logging logic i
 
 ## Examples
 
-For runnable examples check the [examples](examples) folder.
+For runnable examples check the [examples](examples) folder:
 
 - Canonical logging example: [`examples/canonical/main.go`](examples/canonical/main.go)
 - HTTP example: [`examples/http/main.go`](examples/http/main.go)

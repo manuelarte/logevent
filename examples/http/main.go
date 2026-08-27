@@ -9,7 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/manuelarte/logevent/mw"
+	"github.com/manuelarte/logevent"
+	"github.com/manuelarte/logevent/examples"
 	logeventmiddleware "github.com/manuelarte/logevent/mw/http"
 )
 
@@ -20,7 +21,7 @@ func main() {
 }
 
 func run() error {
-	http.Handle("/events", logeventmiddleware.AddLogEventMiddleware(myLogEvent{}, slog.Default())(http.HandlerFunc(eventHandler)))
+	http.Handle("/tasks", logeventmiddleware.AddLogEventMiddleware(examples.MyLogEvent{}, slog.Default())(http.HandlerFunc(processHandler)))
 
 	listener, errPort := net.Listen("tcp", ":0")
 	if errPort != nil {
@@ -33,11 +34,14 @@ func run() error {
 	}()
 
 	httpClient := http.DefaultClient
+	i := -1
 	for {
 		delay := time.Tick(500 * time.Millisecond)
 		select {
 		case <-delay:
-			_, err := httpClient.Get("http://" + listener.Addr().String() + "/events")
+			i++
+			url := fmt.Sprintf("http://%s/tasks?task_id=%d", listener.Addr().String(), i)
+			_, err := httpClient.Get(url)
 			if err != nil {
 				return err
 			}
@@ -46,27 +50,29 @@ func run() error {
 	}
 }
 
-func eventHandler(w http.ResponseWriter, r *http.Request) {
+func processHandler(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
+	// Read process_id from request query and simulate processing time.
+	taskID := r.URL.Query().Get("task_id")
 	// Simulate some processing time.
 	time.Sleep(getRandomDuration())
-	elapsed := time.Since(now)
-	err := mw.UpdateLogEvent(r.Context(), func(t *myLogEvent) {
-		t.Elapsed = elapsed
-	})
-	if err != nil {
-		panic(err)
+	// If something goes wrong, update the error in the log event
+	if rand.IntN(10) < 4 { // 40% chance of simulated error
+		err := fmt.Errorf("simulated processing error")
+		if updateErr := logevent.UpdateLogEvent(r.Context(), func(e *examples.MyLogEvent) {
+			e.Err = err
+		}); updateErr != nil {
+			panic(updateErr) // should never happen
+		}
+	}
+	if updateErr := logevent.UpdateLogEvent(r.Context(), func(t *examples.MyLogEvent) {
+		t.TaskID = taskID
+		t.Elapsed = time.Since(now)
+	}); updateErr != nil {
+		panic(updateErr) // should never happen
 	}
 	w.WriteHeader(200)
 	_, _ = w.Write([]byte("OK"))
-}
-
-type myLogEvent struct {
-	Elapsed time.Duration
-}
-
-func (e myLogEvent) Log(ctx context.Context, logger *slog.Logger) {
-	logger.InfoContext(ctx, "Event handled", slog.Int64("elapsed_ms", e.Elapsed.Milliseconds()))
 }
 
 func getRandomDuration() time.Duration {
