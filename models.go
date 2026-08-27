@@ -22,10 +22,10 @@ type (
 		LogEvent[L]
 	}
 
-	// WrapperLogEvent gives some concurrency support to a logevent.LogEvent.
+	// wrapperLogEvent gives some concurrency support to a logevent.LogEvent.
 	// It ensures the Log method is called only once (via [sync.Once]) and protects
 	// concurrent updates to the underlying log event with a mutex.
-	WrapperLogEvent[L Logger, T any, PT PtrLogEvent[L, T]] struct {
+	wrapperLogEvent[L Logger, T any, PT PtrLogEvent[L, T]] struct {
 		once sync.Once
 		mu   sync.RWMutex
 		le   PT
@@ -33,7 +33,7 @@ type (
 )
 
 // Update add the context to the inner logevent.LogEvent.
-func (w *WrapperLogEvent[L, T, PT]) Update(f func(t PT)) error {
+func (w *wrapperLogEvent[L, T, PT]) Update(f func(t PT)) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -43,7 +43,7 @@ func (w *WrapperLogEvent[L, T, PT]) Update(f func(t PT)) error {
 }
 
 // Log call the inner logevent.LogEvent to log.
-func (w *WrapperLogEvent[L, T, PT]) Log(ctx context.Context, li L) {
+func (w *wrapperLogEvent[L, T, PT]) Log(ctx context.Context, li L) {
 	w.once.Do(func() {
 		w.le.Log(ctx, li)
 	})

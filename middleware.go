@@ -59,7 +59,7 @@ func AddLogEventToContext[L Logger, T any, PT PtrLogEvent[L, T]](
 		panic("invalid type arguments: expected PT to be *T implementing logevent.LogEvent")
 	}
 
-	wle := &WrapperLogEvent[L, T, PT]{
+	wle := &wrapperLogEvent[L, T, PT]{
 		le: pt,
 	}
 	newCtx := context.WithValue(parent, logEventKey[L, T, PT]{}, wle)
@@ -96,7 +96,7 @@ func AddLogEventToContext[L Logger, T any, PT PtrLogEvent[L, T]](
 //		return &pb.Response{}, nil
 //	}
 func UpdateLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](ctx context.Context, f func(t PT)) error {
-	v, ok := ctx.Value(logEventKey[L, T, PT]{}).(*WrapperLogEvent[L, T, PT])
+	v, ok := ctx.Value(logEventKey[L, T, PT]{}).(*wrapperLogEvent[L, T, PT])
 	if !ok {
 		return ErrLogEventNotInitialized
 	}
