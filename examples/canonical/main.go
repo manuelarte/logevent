@@ -7,7 +7,8 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/manuelarte/logevent/mw"
+	"github.com/manuelarte/logevent"
+	"github.com/manuelarte/logevent/examples"
 )
 
 func main() {
@@ -19,14 +20,14 @@ func main() {
 func run() error {
 	// Simulate some background work that needs logging
 	// without using HTTP middleware or gRPC interceptors
-	for range 10 {
+	for i := 0; i < 10; i++ {
 		ctx := context.Background()
 
 		// Step 1: Add the log event to the context
-		ctx = mw.AddLogEventToContext(ctx, myLogEvent{})
+		ctx = logevent.AddLogEventToContext[*slog.Logger](ctx, examples.MyLogEvent{})
 
 		// Step 2: Get the defer function that will log the event
-		deferFunc, err := mw.LogEventFunc[*slog.Logger, myLogEvent, *myLogEvent](ctx, slog.Default())
+		deferFunc, err := logevent.LogItFunc[*slog.Logger, examples.MyLogEvent, *examples.MyLogEvent](ctx, slog.Default())
 		if err != nil {
 			return err
 		}
@@ -38,18 +39,18 @@ func run() error {
 		time.Sleep(getRandomDuration())
 		elapsed := time.Since(start)
 
-		err = mw.UpdateLogEvent(ctx, func(e *myLogEvent) {
+		err = logevent.UpdateLogEvent(ctx, func(e *examples.MyLogEvent) {
 			e.Elapsed = elapsed
-			e.ProcessID = "task-123"
+			e.ProcessID = fmt.Sprintf("%d", i)
 		})
 		if err != nil {
 			return err
 		}
 
 		// If something goes wrong, update the error in the log event
-		if rand.IntN(10) < 2 { // 20% chance of simulated error
+		if rand.IntN(10) < 4 { // 20% chance of simulated error
 			err := fmt.Errorf("simulated processing error")
-			updateErr := mw.UpdateLogEvent(ctx, func(e *myLogEvent) {
+			updateErr := logevent.UpdateLogEvent(ctx, func(e *examples.MyLogEvent) {
 				e.Err = err
 			})
 			if updateErr != nil {
@@ -62,32 +63,6 @@ func run() error {
 	}
 
 	return nil
-}
-
-type myLogEvent struct {
-	ProcessID string
-	Elapsed   time.Duration
-	Err       error
-}
-
-func (e myLogEvent) Log(ctx context.Context, logger *slog.Logger) {
-	if e.Err != nil {
-		logger.ErrorContext(
-			ctx,
-			"Task processing failed",
-			slog.String("process_id", e.ProcessID),
-			slog.Int64("elapsed_ms", e.Elapsed.Milliseconds()),
-			slog.Any("error", e.Err),
-		)
-		return
-	}
-
-	logger.InfoContext(
-		ctx,
-		"Task processed successfully",
-		slog.String("process_id", e.ProcessID),
-		slog.Int64("elapsed_ms", e.Elapsed.Milliseconds()),
-	)
 }
 
 func getRandomDuration() time.Duration {

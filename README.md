@@ -13,7 +13,7 @@ Check the [examples](./examples) folder for more information.
 The steps are the following:
 
 - We define a struct that we are going to update/populate when serving a request.
-- We implement the [`Log`](./model.go#L9) method of the [`LogEvent`](./model.go) interface.
+- We implement the [`Log`](models.go#L9) method of the [`LogEvent`](models.go) interface.
 This allows us to change the way we want to log the event based on the values.
 - When serving the unit of work, we populate that struct event with all the useful information that we want to see in a the log entry.
 - Once the unit of work is served, the library will log that canonical log event by calling the method `Log` we implemented.

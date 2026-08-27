@@ -1,19 +1,13 @@
-// Package mw provides functionality to use log events in any kind of scenario.
-// The package http provides an already ready solution for HTTP middleware.
-// The package grpc provides an already ready solution for gRPC server interceptor.
-package mw
+package logevent
 
 import (
 	"context"
-
-	"github.com/manuelarte/logevent"
-	"github.com/manuelarte/logevent/internal"
 )
 
 type (
 	// logEventKey represents the key to be used to store the LogEvent in the context.
 	// It is a generic type that ensures type-safety when storing and retrieving log events.
-	logEventKey[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]] struct{}
+	logEventKey[L Logger, T any, PT PtrLogEvent[L, T]] struct{}
 )
 
 // HandleWithLogEvent is a generic helper function that encapsulates the common pattern of adding a log event
@@ -30,18 +24,18 @@ type (
 //
 // This design allows handlers to update the log event during request processing and ensures
 // the log event is only logged once and is thread-safe.
-func HandleWithLogEvent[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](
+func HandleWithLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](
 	ctx context.Context,
 	t T,
 	logger L,
 	handler func(context.Context),
-) *internal.WrapperLogEvent[L, T, PT] {
+) *WrapperLogEvent[L, T, PT] {
 	tCopy := t // per-request copy
 	ctx = AddLogEventToContext[L, T, PT](ctx, tCopy)
 	//nolint:errcheck // impossible to fail because we just added the log event to the context
-	wle := ctx.Value(logEventKey[L, T, PT]{}).(*internal.WrapperLogEvent[L, T, PT])
+	wle := ctx.Value(logEventKey[L, T, PT]{}).(*WrapperLogEvent[L, T, PT])
 
-	deferFunc, _ := LogEventFunc[L, T, PT](ctx, logger)
+	deferFunc, _ := LogItFunc[L, T, PT](ctx, logger)
 	defer deferFunc()
 
 	handler(ctx)
@@ -60,7 +54,7 @@ func HandleWithLogEvent[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]]
 // This design allows handlers to update the log event during request processing and ensures
 // the log event is only logged once and is thread-safe.
 // To add more context to the log event, use UpdateLogEvent.
-func AddLogEventToContext[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](
+func AddLogEventToContext[L Logger, T any, PT PtrLogEvent[L, T]](
 	parent context.Context,
 	t T,
 ) context.Context {
@@ -70,7 +64,7 @@ func AddLogEventToContext[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T
 		panic("invalid type arguments: expected PT to be *T implementing logevent.LogEvent")
 	}
 
-	wle := internal.NewWrapperLogEvent(pt)
+	wle := newWrapperLogEvent(pt)
 
 	return context.WithValue(parent, logEventKey[L, T, PT]{}, wle)
 }
@@ -103,16 +97,16 @@ func AddLogEventToContext[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T
 //		})
 //		return &pb.Response{}, nil
 //	}
-func UpdateLogEvent[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](ctx context.Context, f func(t PT)) error {
-	v, ok := ctx.Value(logEventKey[L, T, PT]{}).(*internal.WrapperLogEvent[L, T, PT])
+func UpdateLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](ctx context.Context, f func(t PT)) error {
+	v, ok := ctx.Value(logEventKey[L, T, PT]{}).(*WrapperLogEvent[L, T, PT])
 	if !ok {
-		return logevent.ErrLogEventNotInitialized
+		return ErrLogEventNotInitialized
 	}
 
 	return v.Update(f)
 }
 
-// LogEventFunc logs the log event stored in the context.
+// LogItFunc logs the log event stored in the context.
 //
 // Parameters:
 //   - ctx: The context containing the log event.
@@ -120,13 +114,13 @@ func UpdateLogEvent[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](ctx
 //
 // Returns a function that logs the event and an error if the log event was not initialized
 // (i.e., the request was not wrapped with AddLogEventToContext).
-func LogEventFunc[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](
+func LogItFunc[L Logger, T any, PT PtrLogEvent[L, T]](
 	ctx context.Context,
 	l L,
 ) (func(), error) {
-	wle, ok := ctx.Value(logEventKey[L, T, PT]{}).(*internal.WrapperLogEvent[L, T, PT])
+	wle, ok := ctx.Value(logEventKey[L, T, PT]{}).(*WrapperLogEvent[L, T, PT])
 	if !ok {
-		return nil, logevent.ErrLogEventNotInitialized
+		return nil, ErrLogEventNotInitialized
 	}
 
 	return func() {

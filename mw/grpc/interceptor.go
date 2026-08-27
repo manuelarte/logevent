@@ -7,8 +7,6 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/manuelarte/logevent"
-	"github.com/manuelarte/logevent/internal"
-	"github.com/manuelarte/logevent/mw"
 )
 
 // UnaryServerInterceptor returns a new unary server interceptor that emits a log event
@@ -42,7 +40,7 @@ import (
 //
 //	interceptor := UnaryServerInterceptor(RPCLog{}, slog.Default())
 //	grpc.NewServer(grpc.ChainUnaryInterceptor(interceptor))
-func UnaryServerInterceptor[L logevent.Logger, T any, PT internal.PtrLogEvent[L, T]](
+func UnaryServerInterceptor[L logevent.Logger, T any, PT logevent.PtrLogEvent[L, T]](
 	t T,
 	logger L,
 ) grpc.UnaryServerInterceptor {
@@ -57,7 +55,7 @@ func UnaryServerInterceptor[L logevent.Logger, T any, PT internal.PtrLogEvent[L,
 			err  error
 		)
 
-		mw.HandleWithLogEvent[L, T, PT](ctx, t, logger, func(ctxWithLogEvent context.Context) {
+		logevent.HandleWithLogEvent[L, T, PT](ctx, t, logger, func(ctxWithLogEvent context.Context) {
 			resp, err = handler(ctxWithLogEvent, req)
 		})
 

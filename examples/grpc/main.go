@@ -12,7 +12,9 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	healthgrpc "google.golang.org/grpc/health/grpc_health_v1"
 
-	logeventgrpc "github.com/manuelarte/logevent/middlewares/grpc"
+	"github.com/manuelarte/logevent"
+	"github.com/manuelarte/logevent/examples"
+	logeventgrpc "github.com/manuelarte/logevent/mw/grpc"
 )
 
 func main() {
@@ -29,7 +31,7 @@ func run() error {
 
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(
-			logeventgrpc.UnaryServerInterceptor(myLogEvent{}, slog.Default()),
+			logeventgrpc.UnaryServerInterceptor(examples.MyLogEvent{}, slog.Default()),
 		),
 	)
 	healthgrpc.RegisterHealthServer(server, new(healthServer))
@@ -52,9 +54,11 @@ func run() error {
 	}()
 
 	client := healthgrpc.NewHealthClient(conn)
+	i := -1
 	for {
 		time.Sleep(500 * time.Millisecond)
-		_, errCheck := client.Check(context.Background(), &healthgrpc.HealthCheckRequest{Service: "events"})
+		i++
+		_, errCheck := client.Check(context.Background(), &healthgrpc.HealthCheckRequest{Service: fmt.Sprintf("event-%d", i)})
 		if errCheck != nil {
 			return fmt.Errorf("error calling health check: %w", errCheck)
 		}
@@ -71,9 +75,9 @@ func (s healthServer) Check(ctx context.Context, req *healthgrpc.HealthCheckRequ
 	// Simulate processing time.
 	time.Sleep(getRandomDuration())
 
-	updateErr := mw.UpdateLogEvent(ctx, func(e *myLogEvent) {
-		e.Service = req.GetService()
+	updateErr := logevent.UpdateLogEvent(ctx, func(e *examples.MyLogEvent) {
 		e.Elapsed = time.Since(start)
+		e.ProcessID = req.Service
 	})
 	if updateErr != nil {
 		return nil, updateErr
@@ -84,20 +88,6 @@ func (s healthServer) Check(ctx context.Context, req *healthgrpc.HealthCheckRequ
 
 func (s healthServer) Watch(*healthgrpc.HealthCheckRequest, healthgrpc.Health_WatchServer) error {
 	return fmt.Errorf("watch is not implemented in this example")
-}
-
-type myLogEvent struct {
-	Service string
-	Elapsed time.Duration
-}
-
-func (e myLogEvent) Log(ctx context.Context, li *slog.Logger) {
-	li.InfoContext(
-		ctx,
-		"rpc handled",
-		slog.String("service", e.Service),
-		slog.Int64("elapsed_ms", e.Elapsed.Milliseconds()),
-	)
 }
 
 func getRandomDuration() time.Duration {

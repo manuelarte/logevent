@@ -9,7 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/manuelarte/logevent/mw"
+	"github.com/manuelarte/logevent"
+	"github.com/manuelarte/logevent/examples"
 	logeventmiddleware "github.com/manuelarte/logevent/mw/http"
 )
 
@@ -20,7 +21,7 @@ func main() {
 }
 
 func run() error {
-	http.Handle("/events", logeventmiddleware.AddLogEventMiddleware(myLogEvent{}, slog.Default())(http.HandlerFunc(eventHandler)))
+	http.Handle("/process", logeventmiddleware.AddLogEventMiddleware(examples.MyLogEvent{}, slog.Default())(http.HandlerFunc(processHandler)))
 
 	listener, errPort := net.Listen("tcp", ":0")
 	if errPort != nil {
@@ -37,7 +38,7 @@ func run() error {
 		delay := time.Tick(500 * time.Millisecond)
 		select {
 		case <-delay:
-			_, err := httpClient.Get("http://" + listener.Addr().String() + "/events")
+			_, err := httpClient.Get("http://" + listener.Addr().String() + "/process")
 			if err != nil {
 				return err
 			}
@@ -46,12 +47,12 @@ func run() error {
 	}
 }
 
-func eventHandler(w http.ResponseWriter, r *http.Request) {
+func processHandler(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	// Simulate some processing time.
 	time.Sleep(getRandomDuration())
 	elapsed := time.Since(now)
-	err := mw.UpdateLogEvent(r.Context(), func(t *myLogEvent) {
+	err := logevent.UpdateLogEvent(r.Context(), func(t *examples.MyLogEvent) {
 		t.Elapsed = elapsed
 	})
 	if err != nil {
@@ -59,14 +60,6 @@ func eventHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(200)
 	_, _ = w.Write([]byte("OK"))
-}
-
-type myLogEvent struct {
-	Elapsed time.Duration
-}
-
-func (e myLogEvent) Log(ctx context.Context, logger *slog.Logger) {
-	logger.InfoContext(ctx, "Event handled", slog.Int64("elapsed_ms", e.Elapsed.Milliseconds()))
 }
 
 func getRandomDuration() time.Duration {

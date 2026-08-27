@@ -10,7 +10,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/manuelarte/logevent"
-	"github.com/manuelarte/logevent/mw"
 )
 
 type testLogInterface struct {
@@ -42,7 +41,7 @@ func TestAddLogEventMiddlewareLogsAfterHandler(t *testing.T) {
 	handler := middleware(nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {
 		got = append(got, "handler")
 
-		err := mw.UpdateLogEvent(r.Context(), func(le *testLogEvent) {
+		err := logevent.UpdateLogEvent(r.Context(), func(le *testLogEvent) {
 			le.value = "updated"
 		})
 		if err != nil {
@@ -77,7 +76,7 @@ func TestAddLogEventMiddlewareLogsAfterPanic(t *testing.T) {
 	handler := middleware(nethttp.HandlerFunc(func(_ nethttp.ResponseWriter, r *nethttp.Request) {
 		events = append(events, "handler")
 
-		err := mw.UpdateLogEvent(r.Context(), func(le *testLogEvent) {
+		err := logevent.UpdateLogEvent(r.Context(), func(le *testLogEvent) {
 			le.value = "panic-update"
 		})
 		if err != nil {
@@ -104,7 +103,7 @@ func TestAddLogEventMiddlewareLogsAfterPanic(t *testing.T) {
 func TestUpdateLogEventReturnsErrorWithoutMiddleware(t *testing.T) {
 	t.Parallel()
 
-	err := mw.UpdateLogEvent(t.Context(), func(*testLogEvent) {})
+	err := logevent.UpdateLogEvent(t.Context(), func(*testLogEvent) {})
 
 	if !errors.Is(err, logevent.ErrLogEventNotInitialized) {
 		t.Fatalf("UpdateLogEvent() error = %v, want %v", err, logevent.ErrLogEventNotInitialized)
