@@ -70,20 +70,20 @@ func AddLogEventToContext[L Logger, T any, PT PtrLogEvent[L, T]](
 }
 
 // UpdateLogEvent updates the log event stored in the context during request processing.
-// It works with both HTTP middleware and gRPC interceptors, allowing handlers to modify
-// the log event that will be logged after the request completes.
+// It works with HTTP middleware, gRPC interceptors, or manual log event context lifecycle,
+// allowing handlers to modify the log event that will be logged after the unit of work completes.
 //
 // Parameters:
 //   - ctx: The context containing the log event.
 //   - f: A function that receives the pointer to the log event struct and modifies it.
 //
 // Returns an error if the log event was not initialized (i.e., the request was not wrapped
-// with AddLogEventMiddleware or UnaryServerInterceptor).
+// with AddLogEventMiddleware, UnaryServerInterceptor, or AddLogEventToContext).
 //
 // Example with HTTP:
 //
 //	func myHandler(w http.ResponseWriter, r *http.Request) {
-//		_ = middlewares.UpdateLogEvent(r.Context(), func(log *RequestLog) {
+//		_ = logevent.UpdateLogEvent(r.Context(), func(log *RequestLog) {
 //			log.Path = r.URL.Path
 //			log.Method = r.Method
 //		})
@@ -92,7 +92,7 @@ func AddLogEventToContext[L Logger, T any, PT PtrLogEvent[L, T]](
 // Example with gRPC:
 //
 //	func (s *server) MyRPC(ctx context.Context, req *pb.Request) (*pb.Response, error) {
-//		_ = middlewares.UpdateLogEvent(ctx, func(log *RPCLog) {
+//		_ = logevent.UpdateLogEvent(ctx, func(log *RPCLog) {
 //			log.Method = "MyRPC"
 //		})
 //		return &pb.Response{}, nil
@@ -110,7 +110,7 @@ func UpdateLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](ctx context.Context, 
 //
 // Parameters:
 //   - ctx: The context containing the log event.
-//   - l: The log event to log.
+//   - l: The logger to pass to the LogEvent's Log method.
 //
 // Returns a function that logs the event and an error if the log event was not initialized
 // (i.e., the request was not wrapped with AddLogEventToContext).
