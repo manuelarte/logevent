@@ -68,14 +68,9 @@ func (e taskLogEvent) Log(ctx context.Context, li *slog.Logger) {
 
 func processTask(ctx context.Context, taskID string, logger *slog.Logger) error {
 	// Step 1. Add the log event to the context
-	ctx = logevent.AddLogEventToContext[*slog.Logger](ctx, taskLogEvent{TaskID: taskID})
-
+	ctx, logItFunc := logevent.AddLogEventToContext[*slog.Logger](ctx, taskLogEvent{TaskID: taskID})
 	// Step 2. Get the defer function that will log the event
-	deferFunc, err := logevent.LogItFunc[*slog.Logger](ctx, logger)
-	if err != nil {
-		return err
-	}
-	defer deferFunc()
+	defer logItFunc(logger)
 
 	// Step 3. Update the log event during processing
 	_ = logevent.UpdateLogEvent(ctx, func(e *taskLogEvent) {
@@ -89,7 +84,7 @@ func processTask(ctx context.Context, taskID string, logger *slog.Logger) error 
 		e.Status = "completed"
 	})
 
-	// The log event is automatically logged when the defer is called
+	// The log event is automatically logged when defer is called
 	return nil
 }
 ```
@@ -102,66 +97,66 @@ This library provides a middleware that can be used to emit a log event after an
 package main
 
 import (
-	"context"
-	"log/slog"
-	"net/http"
+    "context"
+    "log/slog"
+    "net/http"
 
-	"github.com/manuelarte/logevent"
-	logeventhttp "github.com/manuelarte/logevent/mw/http"
+    "github.com/manuelarte/logevent"
+    logeventhttp "github.com/manuelarte/logevent/mw/http"
 )
 
 // Step 1. Define your log event struct and how to log it.
 type transferLogEvent struct {
-	Source string
-	Target string
-	Amount string
-	Err    error
+    Source string
+    Target string
+    Amount string
+    Err    error
 }
 
 // Log the event either with Info if everything succeeded or with Error if there was an error.
 func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
-	if e.Err != nil {
-		li.ErrorContext(
-			ctx,
-			"Error when transferring money",
-			slog.String("source", e.Source),
-			slog.String("target", e.Target),
-			slog.String("amount", e.Amount),
-			slog.Any("error", e.Err),
-		)
-		return
-	}
+    if e.Err != nil {
+        li.ErrorContext(
+            ctx,
+           "Error when transferring money",
+           slog.String("source", e.Source),
+           slog.String("target", e.Target),
+           slog.String("amount", e.Amount),
+           slog.Any("error", e.Err),
+        )
+        return
+    }
 
-	li.InfoContext(
-		ctx,
-		"Money transferred successfully",
-		slog.String("source", e.Source),
-		slog.String("target", e.Target),
-		slog.String("amount", e.Amount),
-	)
+     li.InfoContext(
+          ctx,
+          "Money transferred successfully",
+          slog.String("source", e.Source),
+          slog.String("target", e.Target),
+          slog.String("amount", e.Amount),
+     )
 }
 
 // Step 2. Add the middleware to your endpoint.
 func registerRoutes() {
-	http.Handle(
-		"/my-endpoint",
-		logeventhttp.AddLogEventMiddleware(transferLogEvent{}, slog.Default())(http.HandlerFunc(myHandler)),
-	)
+     http.Handle(
+          "/my-endpoint",
+          logeventhttp.AddLogEventMiddleware(transferLogEvent{}, slog.Default())(http.HandlerFunc(myHandler)),
+     )
 }
 
 func myHandler(w http.ResponseWriter, r *http.Request) {
-	// Step 3. Update your log event while serving the request.
-	_ = logevent.UpdateLogEvent(r.Context(), func(t *transferLogEvent) {
-		t.Source = "Alice"
-		t.Target = "Bob"
-		t.Amount = "100"
-	})
-	// ...
-	err := transferMoney("Alice", "Bob", 100)
-	_ = logevent.UpdateLogEvent(r.Context(), func(t *transferLogEvent) {
-		t.Err = err
-	})
-	// ...
+     // Step 3. Update your log event while serving the request.
+     _ = logevent.UpdateLogEvent(r.Context(), func(t *transferLogEvent) {
+          t.Source = "Alice"
+          t.Target = "Bob"
+          t.Amount = "100"
+     })
+     // ...
+     err := transferMoney("Alice", "Bob", 100)
+     _ = logevent.UpdateLogEvent(r.Context(), func(t *transferLogEvent) {
+        t.Err = err
+     })
+     // ...
 }
 ```
 
@@ -173,66 +168,66 @@ This library also provides a unary server interceptor for your gRPC server.
 package main
 
 import (
-	"context"
-	"log/slog"
-
-	"google.golang.org/grpc"
-
-	"github.com/manuelarte/logevent"
-	logeventgrpc "github.com/manuelarte/logevent/mw/grpc"
+     "context"
+     "log/slog"
+    
+     "google.golang.org/grpc"
+    
+     "github.com/manuelarte/logevent"
+     logeventgrpc "github.com/manuelarte/logevent/mw/grpc"
 )
 
 // Step 1. Define your log event struct and how to log it.
 type transferLogEvent struct {
-	Source string
-	Target string
-	Amount string
-	Err    error
+     Source string
+     Target string
+     Amount string
+     Err    error
 }
 
 // Log the event either with Info if everything succeeded or with Error if there was an error.
 func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
-	if e.Err != nil {
-		li.ErrorContext(
-			ctx,
-			"Error when transferring money",
-			slog.String("source", e.Source),
-			slog.String("target", e.Target),
-			slog.String("amount", e.Amount),
-			slog.Any("error", e.Err),
-		)
-		return
-	}
+     if e.Err != nil {
+        li.ErrorContext(
+           ctx,
+           "Error when transferring money",
+           slog.String("source", e.Source),
+           slog.String("target", e.Target),
+           slog.String("amount", e.Amount),
+           slog.Any("error", e.Err),
+    )
+    return
+ }
 
-	li.InfoContext(
-		ctx,
-		"Money transferred successfully",
-		slog.String("source", e.Source),
-		slog.String("target", e.Target),
-		slog.String("amount", e.Amount),
-	)
+    li.InfoContext(
+          ctx,
+          "Money transferred successfully",
+          slog.String("source", e.Source),
+          slog.String("target", e.Target),
+          slog.String("amount", e.Amount),
+    )
 }
 
 // Step 2. Add the interceptor to your server.
 server := grpc.NewServer(
-	grpc.UnaryInterceptor(
-		logeventgrpc.UnaryServerInterceptor(transferLogEvent{}, slog.Default()),
-	),
+    grpc.UnaryInterceptor(
+        logeventgrpc.UnaryServerInterceptor(transferLogEvent{}, slog.Default()),
+    ),
 )
 
 func (s transferMoneyServer) Transfer(ctx context.Context, req *TransferMoneyRequest) (*TransferMoneyResponse, error) {
-	// Step 3. Update your log event while handling the request.
-	_ = logevent.UpdateLogEvent(ctx, func(t *transferLogEvent) {
-		t.Source = "Alice"
-		t.Target = "Bob"
-		t.Amount = "100"
-	})
-	// ...
-	err := transferMoney("Alice", "Bob", 100)
-	_ = logevent.UpdateLogEvent(ctx, func(t *transferLogEvent) {
-		t.Err = err
-	})
-	// ...
+    // Step 3. Update your log event while handling the request.
+    _ = logevent.UpdateLogEvent(ctx, func(t *transferLogEvent) {
+          t.Source = "Alice"
+          t.Target = "Bob"
+          t.Amount = "100"
+    })
+    // ...
+    err := transferMoney("Alice", "Bob", 100)
+    _ = logevent.UpdateLogEvent(ctx, func(t *transferLogEvent) {
+        t.Err = err
+    })
+    // ...
 }
 ```
 

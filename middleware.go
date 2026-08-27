@@ -29,18 +29,13 @@ func HandleWithLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](
 	t T,
 	logger L,
 	handler func(context.Context),
-) *WrapperLogEvent[L, T, PT] {
+) {
 	tCopy := t // per-request copy
-	ctx = AddLogEventToContext[L, T, PT](ctx, tCopy)
-	//nolint:errcheck // impossible to fail because we just added the log event to the context
-	wle := ctx.Value(logEventKey[L, T, PT]{}).(*WrapperLogEvent[L, T, PT])
 
-	deferFunc, _ := LogItFunc[L, T, PT](ctx, logger)
-	defer deferFunc()
+	ctx, deferFunc := AddLogEventToContext[L, T, PT](ctx, tCopy)
+	defer deferFunc(logger)
 
 	handler(ctx)
-
-	return wle
 }
 
 // AddLogEventToContext adds a log event to the context.
@@ -57,16 +52,19 @@ func HandleWithLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](
 func AddLogEventToContext[L Logger, T any, PT PtrLogEvent[L, T]](
 	parent context.Context,
 	t T,
-) context.Context {
+) (context.Context, func(l L)) {
 	// Hack: bridge *T -> PT through interface assertion.
 	pt, ok := any(&t).(PT)
 	if !ok {
 		panic("invalid type arguments: expected PT to be *T implementing logevent.LogEvent")
 	}
 
-	wle := newWrapperLogEvent(pt)
+	wle := &wrapperLogEvent[L, T, PT]{
+		le: pt,
+	}
+	newCtx := context.WithValue(parent, logEventKey[L, T, PT]{}, wle)
 
-	return context.WithValue(parent, logEventKey[L, T, PT]{}, wle)
+	return newCtx, func(l L) { wle.Log(newCtx, l) }
 }
 
 // UpdateLogEvent updates the log event stored in the context during request processing.
@@ -98,32 +96,10 @@ func AddLogEventToContext[L Logger, T any, PT PtrLogEvent[L, T]](
 //		return &pb.Response{}, nil
 //	}
 func UpdateLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](ctx context.Context, f func(t PT)) error {
-	v, ok := ctx.Value(logEventKey[L, T, PT]{}).(*WrapperLogEvent[L, T, PT])
+	v, ok := ctx.Value(logEventKey[L, T, PT]{}).(*wrapperLogEvent[L, T, PT])
 	if !ok {
 		return ErrLogEventNotInitialized
 	}
 
 	return v.Update(f)
-}
-
-// LogItFunc logs the log event stored in the context.
-//
-// Parameters:
-//   - ctx: The context containing the log event.
-//   - l: The logger to pass to the LogEvent's Log method.
-//
-// Returns a function that logs the event and an error if the log event was not initialized
-// (i.e., the request was not wrapped with AddLogEventToContext).
-func LogItFunc[L Logger, T any, PT PtrLogEvent[L, T]](
-	ctx context.Context,
-	l L,
-) (func(), error) {
-	wle, ok := ctx.Value(logEventKey[L, T, PT]{}).(*WrapperLogEvent[L, T, PT])
-	if !ok {
-		return nil, ErrLogEventNotInitialized
-	}
-
-	return func() {
-		wle.Log(ctx, l)
-	}, nil
 }
