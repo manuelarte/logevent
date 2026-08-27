@@ -32,12 +32,6 @@ type (
 	}
 )
 
-func newWrapperLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](le PT) *WrapperLogEvent[L, T, PT] {
-	return &WrapperLogEvent[L, T, PT]{
-		le: le,
-	}
-}
-
 // Update add the context to the inner logevent.LogEvent.
 func (w *WrapperLogEvent[L, T, PT]) Update(f func(t PT)) error {
 	w.mu.Lock()

@@ -33,9 +33,7 @@ func HandleWithLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](
 	tCopy := t // per-request copy
 
 	ctx, deferFunc := AddLogEventToContext[L, T, PT](ctx, tCopy)
-	defer func() {
-		_ = deferFunc(logger)
-	}()
+	defer deferFunc(logger)
 
 	handler(ctx)
 }
@@ -54,17 +52,19 @@ func HandleWithLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](
 func AddLogEventToContext[L Logger, T any, PT PtrLogEvent[L, T]](
 	parent context.Context,
 	t T,
-) (context.Context, func(l L) error) {
+) (context.Context, func(l L)) {
 	// Hack: bridge *T -> PT through interface assertion.
 	pt, ok := any(&t).(PT)
 	if !ok {
 		panic("invalid type arguments: expected PT to be *T implementing logevent.LogEvent")
 	}
 
-	wle := newWrapperLogEvent(pt)
+	wle := &WrapperLogEvent[L, T, PT]{
+		le: pt,
+	}
 	newCtx := context.WithValue(parent, logEventKey[L, T, PT]{}, wle)
 
-	return newCtx, func(l L) error { return logItFunc[L, T, PT](newCtx, l) }
+	return newCtx, func(l L) { wle.Log(newCtx, l) }
 }
 
 // UpdateLogEvent updates the log event stored in the context during request processing.
@@ -102,15 +102,4 @@ func UpdateLogEvent[L Logger, T any, PT PtrLogEvent[L, T]](ctx context.Context, 
 	}
 
 	return v.Update(f)
-}
-
-func logItFunc[L Logger, T any, PT PtrLogEvent[L, T]](ctx context.Context, l L) error {
-	wle, ok := ctx.Value(logEventKey[L, T, PT]{}).(*WrapperLogEvent[L, T, PT])
-	if !ok {
-		return ErrLogEventNotInitialized
-	}
-
-	wle.Log(ctx, l)
-
-	return nil
 }
