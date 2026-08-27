@@ -11,9 +11,9 @@ import (
 var _ = new(logevent.LogEvent[*slog.Logger])
 
 type MyLogEvent struct {
-	ProcessID string
-	Elapsed   time.Duration
-	Err       error
+	TaskID  string
+	Elapsed time.Duration
+	Err     error
 }
 
 func (e MyLogEvent) Log(ctx context.Context, logger *slog.Logger) {
@@ -21,7 +21,7 @@ func (e MyLogEvent) Log(ctx context.Context, logger *slog.Logger) {
 		logger.ErrorContext(
 			ctx,
 			"Task processing failed",
-			slog.String("process_id", e.ProcessID),
+			slog.String("task_id", e.TaskID),
 			slog.Int64("elapsed_ms", e.Elapsed.Milliseconds()),
 			slog.Any("error", e.Err),
 		)
@@ -31,7 +31,7 @@ func (e MyLogEvent) Log(ctx context.Context, logger *slog.Logger) {
 	logger.InfoContext(
 		ctx,
 		"Task processed successfully",
-		slog.String("process_id", e.ProcessID),
+		slog.String("task_id", e.TaskID),
 		slog.Int64("elapsed_ms", e.Elapsed.Milliseconds()),
 	)
 }

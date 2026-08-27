@@ -74,12 +74,19 @@ func (s healthServer) Check(ctx context.Context, req *healthgrpc.HealthCheckRequ
 
 	// Simulate processing time.
 	time.Sleep(getRandomDuration())
+	if rand.IntN(10) < 4 { // 40% chance of simulated error
+		errProcessing := fmt.Errorf("simulated processing error")
+		if updateErr := logevent.UpdateLogEvent(ctx, func(e *examples.MyLogEvent) {
+			e.Err = errProcessing
+		}); updateErr != nil {
+			return nil, updateErr
+		}
+	}
 
-	updateErr := logevent.UpdateLogEvent(ctx, func(e *examples.MyLogEvent) {
+	if updateErr := logevent.UpdateLogEvent(ctx, func(e *examples.MyLogEvent) {
 		e.Elapsed = time.Since(start)
-		e.ProcessID = req.Service
-	})
-	if updateErr != nil {
+		e.TaskID = req.Service
+	}); updateErr != nil {
 		return nil, updateErr
 	}
 
