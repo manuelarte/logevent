@@ -57,6 +57,9 @@ linters:
       testcomments:
         type: module
         description: lint that follows standards described in TestComments.
+        settings:
+          table-driven-format:
+            type: slice
       structinit:
         type: module
         description: check struct's field initialization order matches struct's field declaration.
