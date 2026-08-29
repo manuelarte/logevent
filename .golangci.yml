@@ -59,7 +59,7 @@ linters:
         description: lint that follows standards described in TestComments.
         settings:
           table-driven-format:
-            type: slice
+            type: map
       structinit:
         type: module
         description: check struct's field initialization order matches struct's field declaration.
