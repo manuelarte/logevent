@@ -39,6 +39,7 @@ linters:
     - importas  # No need of aliasing imports.
     - inamedparam  # Not important.
     - ireturn  # No need for this linter here.
+    - noinlineerr # I prefer inline error handling.
     - promlinter # Related to prometheus.
     - protogetter # Related to protocol buffer.
     - rowserrcheck # Related to SQL.

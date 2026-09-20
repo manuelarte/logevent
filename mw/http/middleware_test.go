@@ -23,10 +23,9 @@ func TestAddLogEventMiddlewareLogsAfterHandler(t *testing.T) {
 	handler := middleware(nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {
 		got = append(got, "handler")
 
-		err := logevent.UpdateLogEvent(r.Context(), func(le *testLogEvent) {
+		if err := logevent.UpdateLogEvent(r.Context(), func(le *testLogEvent) {
 			le.value = "updated"
-		})
-		if err != nil {
+		}); err != nil {
 			t.Fatalf("UpdateLogEvent() error = %v", err)
 		}
 
@@ -58,10 +57,9 @@ func TestAddLogEventMiddlewareLogsAfterPanic(t *testing.T) {
 	handler := middleware(nethttp.HandlerFunc(func(_ nethttp.ResponseWriter, r *nethttp.Request) {
 		events = append(events, "handler")
 
-		err := logevent.UpdateLogEvent(r.Context(), func(le *testLogEvent) {
+		if err := logevent.UpdateLogEvent(r.Context(), func(le *testLogEvent) {
 			le.value = "panic-update"
-		})
-		if err != nil {
+		}); err != nil {
 			t.Fatalf("UpdateLogEvent() error = %v", err)
 		}
 

@@ -18,10 +18,9 @@ func TestHandleWithLogEventLogsAfterHandler(t *testing.T) {
 	h := func(ctx context.Context) {
 		got = append(got, "handler")
 
-		err := UpdateLogEvent(ctx, func(le *testLogEvent) {
+		if err := UpdateLogEvent(ctx, func(le *testLogEvent) {
 			le.value = "updated"
-		})
-		if err != nil {
+		}); err != nil {
 			t.Fatalf("UpdateLogEvent() error = %v", err)
 		}
 	}
@@ -29,7 +28,7 @@ func TestHandleWithLogEventLogsAfterHandler(t *testing.T) {
 
 	want := []string{"handler", "log:updated", "info:updated"}
 	if !cmp.Equal(got, want) {
-		t.Fatalf("got = %v, want %v", got, want)
+		t.Fatalf("events = %v, want %v", got, want)
 	}
 }
 
@@ -45,10 +44,9 @@ func TestHandleWithLogEventLogsAfterPanic(t *testing.T) {
 	h := func(ctx context.Context) {
 		events = append(events, "handler")
 
-		err := UpdateLogEvent(ctx, func(le *testLogEvent) {
+		if err := UpdateLogEvent(ctx, func(le *testLogEvent) {
 			le.value = "panic-update"
-		})
-		if err != nil {
+		}); err != nil {
 			t.Fatalf("UpdateLogEvent() error = %v", err)
 		}
 
@@ -67,6 +65,35 @@ func TestHandleWithLogEventLogsAfterPanic(t *testing.T) {
 	}()
 
 	HandleWithLogEvent(ctx, le, li, h)
+}
+
+func TestHandleWithLogEventLogsUpdateOnDefer(t *testing.T) {
+	t.Parallel()
+
+	got := make([]string, 0)
+	li := testLogInterface{entries: &got}
+	le := testLogEvent{events: &got}
+
+	ctx := t.Context()
+	h := func(ctx context.Context) {
+		got = append(got, "handler")
+
+		go func() {
+			if err := UpdateLogEvent(ctx, func(le *testLogEvent) {
+				le.value = "updated"
+			}); err != nil {
+				t.Errorf("UpdateLogEvent() error = %v", err)
+
+				return
+			}
+		}()
+	}
+	HandleWithLogEvent(ctx, le, li, h)
+
+	want := []string{"handler", "log:updated", "info:updated"}
+	if !cmp.Equal(got, want) {
+		t.Fatalf("events = %v, want %v", got, want)
+	}
 }
 
 type testLogInterface struct {

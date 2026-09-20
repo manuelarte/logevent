@@ -40,10 +40,9 @@ func TestUnaryServerInterceptorLogsAfterHandler(t *testing.T) {
 	handler := func(ctx context.Context, req any) (any, error) {
 		got = append(got, "handler")
 
-		err := logevent.UpdateLogEvent(ctx, func(e *testLogEvent) {
+		if err := logevent.UpdateLogEvent(ctx, func(e *testLogEvent) {
 			e.value = "updated"
-		})
-		if err != nil {
+		}); err != nil {
 			t.Fatalf("UpdateLogEvent() error = %v", err)
 		}
 
@@ -79,10 +78,9 @@ func TestUnaryServerInterceptorLogsAfterHandlerError(t *testing.T) {
 	handler := func(ctx context.Context, req any) (any, error) {
 		events = append(events, "handler")
 
-		err := logevent.UpdateLogEvent(ctx, func(e *testLogEvent) {
+		if err := logevent.UpdateLogEvent(ctx, func(e *testLogEvent) {
 			e.value = "error-update"
-		})
-		if err != nil {
+		}); err != nil {
 			t.Fatalf("UpdateLogEvent() error = %v", err)
 		}
 
@@ -126,10 +124,9 @@ func TestUnaryServerInterceptorEachRequestGetsFreshInstance(t *testing.T) {
 	interceptor := UnaryServerInterceptor(testLogEvent{events: &entries}, li)
 
 	handler := func(ctx context.Context, req any) (any, error) {
-		err := logevent.UpdateLogEvent(ctx, func(e *testLogEvent) {
+		if err := logevent.UpdateLogEvent(ctx, func(e *testLogEvent) {
 			pointers = append(pointers, fmt.Sprintf("%p", e))
-		})
-		if err != nil {
+		}); err != nil {
 			t.Fatalf("UpdateLogEvent() error = %v", err)
 		}
 
