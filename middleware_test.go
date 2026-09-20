@@ -98,6 +98,34 @@ func TestHandleWithLogEventLogsUpdateOnDefer(t *testing.T) {
 	wg.Wait()
 }
 
+func TestHandleWithLogEventLogsOnlyOnce(t *testing.T) {
+	t.Parallel()
+
+	got := make([]string, 0)
+	li := testLogInterface{entries: &got}
+	le := testLogEvent{events: &got}
+
+	ctx := t.Context()
+	_, deferFunc := AddLogEventToContext[testLogInterface, testLogEvent, *testLogEvent](ctx, le)
+
+	const numCalls = 10
+
+	wg := sync.WaitGroup{}
+	wg.Add(numCalls)
+
+	for range numCalls {
+		deferFunc(li)
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	want := []string{"log:", "info:"}
+	if !cmp.Equal(got, want) {
+		t.Fatalf("events = %v, want %v (Log should have been called exactly once)", got, want)
+	}
+}
+
 type testLogInterface struct {
 	entries *[]string
 }
