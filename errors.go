@@ -8,9 +8,14 @@ import (
 
 var _ error = new(DifferentLogEventTypeError)
 
-// ErrLogEventNotInitialized error returned when adding context to a log event
-// but the log event was not initialized.
-var ErrLogEventNotInitialized = errors.New("LogEvent not initialized")
+var (
+	// ErrLogEventNotInitialized error returned when adding context to a log event.
+	// but the log event was not initialized.
+	ErrLogEventNotInitialized = errors.New("LogEvent not initialized")
+
+	// ErrUpdatingLoggedEvent error returned when trying to update a log event that has already been logged.
+	ErrUpdatingLoggedEvent = errors.New("LogEvent already logged")
+)
 
 type (
 	// DifferentLogEventTypeError is returned when the log event type is different from the previous one.

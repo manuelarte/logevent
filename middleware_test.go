@@ -2,6 +2,8 @@ package logevent
 
 import (
 	"context"
+	"errors"
+	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -18,10 +20,9 @@ func TestHandleWithLogEventLogsAfterHandler(t *testing.T) {
 	h := func(ctx context.Context) {
 		got = append(got, "handler")
 
-		err := UpdateLogEvent(ctx, func(le *testLogEvent) {
+		if err := UpdateLogEvent(ctx, func(le *testLogEvent) {
 			le.value = "updated"
-		})
-		if err != nil {
+		}); err != nil {
 			t.Fatalf("UpdateLogEvent() error = %v", err)
 		}
 	}
@@ -29,7 +30,7 @@ func TestHandleWithLogEventLogsAfterHandler(t *testing.T) {
 
 	want := []string{"handler", "log:updated", "info:updated"}
 	if !cmp.Equal(got, want) {
-		t.Fatalf("got = %v, want %v", got, want)
+		t.Fatalf("events = %v, want %v", got, want)
 	}
 }
 
@@ -45,10 +46,9 @@ func TestHandleWithLogEventLogsAfterPanic(t *testing.T) {
 	h := func(ctx context.Context) {
 		events = append(events, "handler")
 
-		err := UpdateLogEvent(ctx, func(le *testLogEvent) {
+		if err := UpdateLogEvent(ctx, func(le *testLogEvent) {
 			le.value = "panic-update"
-		})
-		if err != nil {
+		}); err != nil {
 			t.Fatalf("UpdateLogEvent() error = %v", err)
 		}
 
@@ -67,6 +67,63 @@ func TestHandleWithLogEventLogsAfterPanic(t *testing.T) {
 	}()
 
 	HandleWithLogEvent(ctx, le, li, h)
+}
+
+func TestHandleWithLogEventLogsUpdateOnDefer(t *testing.T) {
+	t.Parallel()
+
+	got := make([]string, 0)
+	li := testLogInterface{entries: &got}
+	le := testLogEvent{events: &got}
+
+	ctx := t.Context()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	h := func(ctx context.Context) {
+		got = append(got, "handler")
+
+		go func() {
+			defer wg.Done()
+
+			err := UpdateLogEvent(ctx, func(le *testLogEvent) {
+				le.value = "updated"
+			})
+			if !errors.Is(err, ErrUpdatingLoggedEvent) {
+				t.Errorf("UpdateLogEvent() error = %v, want %v", err, ErrUpdatingLoggedEvent)
+			}
+		}()
+	}
+	HandleWithLogEvent(ctx, le, li, h)
+	wg.Wait()
+}
+
+func TestHandleWithLogEventLogsOnlyOnce(t *testing.T) {
+	t.Parallel()
+
+	got := make([]string, 0)
+	li := testLogInterface{entries: &got}
+	le := testLogEvent{events: &got}
+
+	ctx := t.Context()
+	_, deferFunc := AddLogEventToContext[testLogInterface, testLogEvent, *testLogEvent](ctx, le)
+
+	const numCalls = 10
+
+	wg := sync.WaitGroup{}
+	wg.Add(numCalls)
+
+	for range numCalls {
+		deferFunc(li)
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	want := []string{"log:", "info:"}
+	if !cmp.Equal(got, want) {
+		t.Fatalf("events = %v, want %v (Log should have been called exactly once)", got, want)
+	}
 }
 
 type testLogInterface struct {
