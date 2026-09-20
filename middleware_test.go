@@ -1,44 +1,31 @@
-package http
+package logevent
 
 import (
 	"context"
-	"errors"
-	nethttp "net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-
-	"github.com/manuelarte/logevent"
 )
 
-func TestAddLogEventMiddlewareLogsAfterHandler(t *testing.T) {
+func TestHandleWithLogEventLogsAfterHandler(t *testing.T) {
 	t.Parallel()
 
 	got := make([]string, 0)
 	li := testLogInterface{entries: &got}
 	le := testLogEvent{events: &got}
 
-	middleware := AddLogEventMiddleware(le, li)
-	handler := middleware(nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {
+	ctx := t.Context()
+	h := func(ctx context.Context) {
 		got = append(got, "handler")
 
-		err := logevent.UpdateLogEvent(r.Context(), func(le *testLogEvent) {
+		err := UpdateLogEvent(ctx, func(le *testLogEvent) {
 			le.value = "updated"
 		})
 		if err != nil {
 			t.Fatalf("UpdateLogEvent() error = %v", err)
 		}
-
-		w.WriteHeader(nethttp.StatusAccepted)
-	}))
-
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), nethttp.MethodGet, "/", nil))
-
-	if rec.Code != nethttp.StatusAccepted {
-		t.Fatalf("status code = %d, want %d", rec.Code, nethttp.StatusAccepted)
 	}
+	HandleWithLogEvent(ctx, le, li, h)
 
 	want := []string{"handler", "log:updated", "info:updated"}
 	if !cmp.Equal(got, want) {
@@ -46,7 +33,7 @@ func TestAddLogEventMiddlewareLogsAfterHandler(t *testing.T) {
 	}
 }
 
-func TestAddLogEventMiddlewareLogsAfterPanic(t *testing.T) {
+func TestHandleWithLogEventLogsAfterPanic(t *testing.T) {
 	t.Parallel()
 
 	events := make([]string, 0)
@@ -54,11 +41,11 @@ func TestAddLogEventMiddlewareLogsAfterPanic(t *testing.T) {
 	le := testLogEvent{events: &events}
 	panicValue := "boom"
 
-	middleware := AddLogEventMiddleware(le, li)
-	handler := middleware(nethttp.HandlerFunc(func(_ nethttp.ResponseWriter, r *nethttp.Request) {
+	ctx := t.Context()
+	h := func(ctx context.Context) {
 		events = append(events, "handler")
 
-		err := logevent.UpdateLogEvent(r.Context(), func(le *testLogEvent) {
+		err := UpdateLogEvent(ctx, func(le *testLogEvent) {
 			le.value = "panic-update"
 		})
 		if err != nil {
@@ -66,7 +53,7 @@ func TestAddLogEventMiddlewareLogsAfterPanic(t *testing.T) {
 		}
 
 		panic(panicValue)
-	}))
+	}
 
 	defer func() {
 		if recovered := recover(); recovered != panicValue {
@@ -79,17 +66,7 @@ func TestAddLogEventMiddlewareLogsAfterPanic(t *testing.T) {
 		}
 	}()
 
-	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequestWithContext(t.Context(), nethttp.MethodGet, "/", nil))
-}
-
-func TestUpdateLogEventReturnsErrorWithoutMiddleware(t *testing.T) {
-	t.Parallel()
-
-	err := logevent.UpdateLogEvent(t.Context(), func(*testLogEvent) {})
-
-	if !errors.Is(err, logevent.ErrLogEventNotInitialized) {
-		t.Fatalf("UpdateLogEvent() error = %v, want %v", err, logevent.ErrLogEventNotInitialized)
-	}
+	HandleWithLogEvent(ctx, le, li, h)
 }
 
 type testLogInterface struct {
