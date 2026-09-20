@@ -27,7 +27,7 @@ type (
 	// concurrent updates to the underlying log event with a mutex.
 	wrapperLogEvent[L Logger, T any, PT PtrLogEvent[L, T]] struct {
 		once sync.Once
-		mu   sync.RWMutex
+		mu   sync.Mutex
 		le   PT
 	}
 )
