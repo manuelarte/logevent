@@ -26,9 +26,10 @@ type (
 	// It ensures the Log method is called only once (via [sync.Once]) and protects
 	// concurrent updates to the underlying log event with a mutex.
 	wrapperLogEvent[L Logger, T any, PT PtrLogEvent[L, T]] struct {
-		once sync.Once
-		mu   sync.Mutex
-		le   PT
+		once   sync.Once
+		mu     sync.Mutex
+		logged bool
+		le     PT
 	}
 )
 
@@ -37,6 +38,10 @@ func (w *wrapperLogEvent[L, T, PT]) Update(f func(t PT)) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
+	if w.logged {
+		return ErrUpdatingLoggedEvent
+	}
+
 	f(w.le)
 
 	return nil
@@ -44,6 +49,10 @@ func (w *wrapperLogEvent[L, T, PT]) Update(f func(t PT)) error {
 
 // Log call the inner logevent.LogEvent to log.
 func (w *wrapperLogEvent[L, T, PT]) Log(ctx context.Context, li L) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	w.logged = true
 	w.once.Do(func() {
 		w.le.Log(ctx, li)
 	})

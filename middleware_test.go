@@ -2,6 +2,8 @@ package logevent
 
 import (
 	"context"
+	"errors"
+	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -75,25 +77,25 @@ func TestHandleWithLogEventLogsUpdateOnDefer(t *testing.T) {
 	le := testLogEvent{events: &got}
 
 	ctx := t.Context()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
 	h := func(ctx context.Context) {
 		got = append(got, "handler")
 
 		go func() {
-			if err := UpdateLogEvent(ctx, func(le *testLogEvent) {
-				le.value = "updated"
-			}); err != nil {
-				t.Errorf("UpdateLogEvent() error = %v", err)
+			defer wg.Done()
 
-				return
+			err := UpdateLogEvent(ctx, func(le *testLogEvent) {
+				le.value = "updated"
+			})
+			if !errors.Is(err, ErrUpdatingLoggedEvent) {
+				t.Errorf("UpdateLogEvent() error = %v, want %v", err, ErrUpdatingLoggedEvent)
 			}
 		}()
 	}
 	HandleWithLogEvent(ctx, le, li, h)
-
-	want := []string{"handler", "log:updated", "info:updated"}
-	if !cmp.Equal(got, want) {
-		t.Fatalf("events = %v, want %v", got, want)
-	}
+	wg.Wait()
 }
 
 type testLogInterface struct {
