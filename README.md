@@ -50,42 +50,38 @@ to manually control the log event lifecycle.
 package main
 
 import (
-	"context"
-	"log/slog"
+ "context"
+ "log/slog"
 
-	"github.com/manuelarte/logevent"
+ "github.com/manuelarte/logevent"
 )
 
 type taskLogEvent struct {
-	TaskID  string
-	Status  string
-	Elapsed int64
+ taskID  string
+ status  string
+ elapsed int64
 }
 
 func (e taskLogEvent) Log(ctx context.Context, li *slog.Logger) {
-	li.InfoContext(ctx, "Task completed", slog.String("task_id", e.TaskID), slog.String("status", e.Status))
+ li.InfoContext(ctx, "Task completed", slog.String("task_id", e.taskID), slog.String("status", e.status))
 }
 
 func processTask(ctx context.Context, taskID string, logger *slog.Logger) error {
-	// Step 1. Add the log event to the context
-	ctx, logItFunc := logevent.AddLogEventToContext[*slog.Logger](ctx, taskLogEvent{TaskID: taskID})
-	// Step 2. Get the defer function that will log the event
-	defer logItFunc(logger)
+ // Step 1. Add the log event to the context
+ ctx, logItFunc := logevent.AddLogEventToContext[*slog.Logger](ctx, taskLogEvent{taskID: taskID})
+ // Step 2. Get the defer function that will log the event
+ defer logItFunc(logger)
 
-	// Step 3. Update the log event during processing
-	_ = logevent.UpdateLogEvent(ctx, func(e *taskLogEvent) {
-		e.Status = "processing"
-	})
+ // Do some work...
 
-	// Do some work...
+ // Step 3. Update the log event during processing
+ _ = logevent.UpdateLogEvent(ctx, func(e *taskLogEvent) {
+  e.elapsed = elapsedTime
+  e.status = "completed"
+ })
 
-	// Step 4. Update the log event with final status
-	_ = logevent.UpdateLogEvent(ctx, func(e *taskLogEvent) {
-		e.Status = "completed"
-	})
-
-	// The log event is automatically logged when defer is called
-	return nil
+ // The log event is automatically logged when defer is called
+ return nil
 }
 ```
 
@@ -107,22 +103,22 @@ import (
 
 // Step 1. Define your log event struct and how to log it.
 type transferLogEvent struct {
-    Source string
-    Target string
-    Amount string
-    Err    error
+    source   string
+    target   string
+    amount   string
+    transferErr error
 }
 
 // Log the event either with Info if everything succeeded or with Error if there was an error.
 func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
-    if e.Err != nil {
+    if e.transferErr != nil {
         li.ErrorContext(
             ctx,
            "Error when transferring money",
-           slog.String("source", e.Source),
-           slog.String("target", e.Target),
-           slog.String("amount", e.Amount),
-           slog.Any("error", e.Err),
+           slog.String("source", e.source),
+           slog.String("target", e.target),
+           slog.String("amount", e.amount),
+           slog.Any("error", e.transferErr),
         )
         return
     }
@@ -130,9 +126,9 @@ func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
      li.InfoContext(
           ctx,
           "Money transferred successfully",
-          slog.String("source", e.Source),
-          slog.String("target", e.Target),
-          slog.String("amount", e.Amount),
+          slog.String("source", e.source),
+          slog.String("target", e.target),
+          slog.String("amount", e.amount),
      )
 }
 
@@ -147,14 +143,14 @@ func registerRoutes() {
 func myHandler(w http.ResponseWriter, r *http.Request) {
      // Step 3. Update your log event while serving the request.
      _ = logevent.UpdateLogEvent(r.Context(), func(t *transferLogEvent) {
-          t.Source = "Alice"
-          t.Target = "Bob"
-          t.Amount = "100"
+          t.source = "Alice"
+          t.target = "Bob"
+          t.amount = "100"
      })
      // ...
      err := transferMoney("Alice", "Bob", 100)
      _ = logevent.UpdateLogEvent(r.Context(), func(t *transferLogEvent) {
-        t.Err = err
+        t.transferErr = err
      })
      // ...
 }
@@ -170,31 +166,31 @@ package main
 import (
      "context"
      "log/slog"
-    
+
      "google.golang.org/grpc"
-    
+
      "github.com/manuelarte/logevent"
      logeventgrpc "github.com/manuelarte/logevent/mw/grpc"
 )
 
 // Step 1. Define your log event struct and how to log it.
 type transferLogEvent struct {
-     Source string
-     Target string
-     Amount string
-     Err    error
+     source string
+     target string
+     amount string
+     transferErr    error
 }
 
 // Log the event either with Info if everything succeeded or with Error if there was an error.
 func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
-     if e.Err != nil {
+     if e.transferErr != nil {
         li.ErrorContext(
            ctx,
            "Error when transferring money",
-           slog.String("source", e.Source),
-           slog.String("target", e.Target),
-           slog.String("amount", e.Amount),
-           slog.Any("error", e.Err),
+           slog.String("source", e.source),
+           slog.String("target", e.target),
+           slog.String("amount", e.amount),
+           slog.Any("error", e.transferErr),
     )
     return
  }
@@ -202,9 +198,9 @@ func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
     li.InfoContext(
           ctx,
           "Money transferred successfully",
-          slog.String("source", e.Source),
-          slog.String("target", e.Target),
-          slog.String("amount", e.Amount),
+          slog.String("source", e.source),
+          slog.String("target", e.target),
+          slog.String("amount", e.amount),
     )
 }
 
@@ -218,14 +214,14 @@ server := grpc.NewServer(
 func (s transferMoneyServer) Transfer(ctx context.Context, req *TransferMoneyRequest) (*TransferMoneyResponse, error) {
     // Step 3. Update your log event while handling the request.
     _ = logevent.UpdateLogEvent(ctx, func(t *transferLogEvent) {
-          t.Source = "Alice"
-          t.Target = "Bob"
-          t.Amount = "100"
+          t.source = "Alice"
+          t.target = "Bob"
+          t.amount = "100"
     })
     // ...
     err := transferMoney("Alice", "Bob", 100)
     _ = logevent.UpdateLogEvent(ctx, func(t *transferLogEvent) {
-        t.Err = err
+        t.transferErr = err
     })
     // ...
 }
@@ -243,6 +239,38 @@ This library provides an HTTP middleware and a gRPC interceptor, but also a
 5. Checking for any updates made by the handler
 
 This ensures consistent behavior and makes it easy to update the logging logic in a single place.
+
+By having custom log events structs, you can make more complex logging decisions
+based on the values of the log event, and also make it easier to add new fields to the log event
+without changing the logging logic.
+
+Some examples can be:
+
+- log only a percentage of the successful requests:
+
+```go
+func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
+    if e.transferErr != nil {
+    // Log the error
+    }
+ if rand.Float64() < 0.1 { // log only 10% of the successful requests
+        // Log the successful request
+    }
+}
+```
+
+- log only if the elapsed time is greater than a certain amount of time:
+
+```go
+func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
+    if e.transferErr != nil {
+    // Log the error
+    }
+    if e.elapsed > 1000 { // log only if the elapsed time is greater than 1000ms
+        // Log the successful request
+    }
+}
+```
 
 ## Examples
 
