@@ -251,7 +251,7 @@ Some examples can be:
 ```go
 func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
     if e.transferErr != nil {
-    // Log the error
+        // Log the error
     }
  if rand.Float64() < 0.1 { // log only 10% of the successful requests
         // Log the successful request
@@ -264,7 +264,7 @@ func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
 ```go
 func (e transferLogEvent) Log(ctx context.Context, li *slog.Logger) {
     if e.transferErr != nil {
-    // Log the error
+        // Log the error
     }
     if e.elapsed > 1000 { // log only if the elapsed time is greater than 1000ms
         // Log the successful request
